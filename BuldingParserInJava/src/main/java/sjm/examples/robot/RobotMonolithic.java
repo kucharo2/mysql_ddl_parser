@@ -33,7 +33,7 @@ public static void main(String[] args) {
 	command.add(pickCommand);
 	command.add(placeCommand);
 	command.add(scanCommand);
-	
+
 	pickCommand.add(new CaselessLiteral("pick"));
 	pickCommand.add(new CaselessLiteral("carrier"));
 	pickCommand.add(new CaselessLiteral("from"));

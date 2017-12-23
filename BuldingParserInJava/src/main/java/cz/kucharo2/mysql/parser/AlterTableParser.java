@@ -1,9 +1,9 @@
 package cz.kucharo2.mysql.parser;
 
-import sjm.parse.Alternation;
-import sjm.parse.Empty;
-import sjm.parse.Parser;
-import sjm.parse.Sequence;
+import cz.kucharo2.mysql.assembler.AddColumnAssembler;
+import cz.kucharo2.mysql.assembler.ChangeColumnAssembler;
+import cz.kucharo2.mysql.assembler.DropColumnAssembler;
+import sjm.parse.*;
 import sjm.parse.tokens.CaselessLiteral;
 import sjm.parse.tokens.TokenAssembly;
 import sjm.parse.tokens.Word;
@@ -15,13 +15,20 @@ public class AlterTableParser {
 
     public void parse(String text) {
         Parser parser = query();
-        System.out.println(parser.bestMatch(new TokenAssembly(text)));
+        Assembly assembly = parser.bestMatch(new TokenAssembly(text));
+        if (assembly == null) {
+            System.out.println("Nothing matched.");
+        } else if (assembly.getTarget() == null) {
+            System.out.println("Match found, but bo target specified");
+        } else {
+            System.out.println(assembly.getTarget());
+        }
     }
 
     protected Parser query() {
         Sequence sequence = new Sequence();
-        sequence.add(new CaselessLiteral("alter"));
-        sequence.add(new CaselessLiteral("table"));
+        sequence.add(new CaselessLiteral("alter").discard());
+        sequence.add(new CaselessLiteral("table").discard());
         sequence.add(tableName());
         sequence.add(alterSpecification());
         return sequence;
@@ -37,30 +44,37 @@ public class AlterTableParser {
 
     protected Parser addColumn() {
         Sequence sequence = new Sequence();
-        sequence.add(new CaselessLiteral("add"));
-        sequence.add(optional(new CaselessLiteral("column")));
+        sequence.add(new CaselessLiteral("add").discard());
+        sequence.add(optional(new CaselessLiteral("column").discard()));
         sequence.add(columnName());
         sequence.add(columnDefinition());
+
+        sequence.setAssembler(new AddColumnAssembler());
         return sequence;
     }
 
     protected Parser dropColumn() {
         Sequence sequence = new Sequence();
-        sequence.add(new CaselessLiteral("drop"));
-        sequence.add(optional(new CaselessLiteral("column")));
+        sequence.add(new CaselessLiteral("drop").discard());
+        sequence.add(optional(new CaselessLiteral("column").discard()));
         sequence.add(columnName());
+
+        sequence.setAssembler(new DropColumnAssembler());
+
         return sequence;
     }
 
     protected Parser changeColumn() {
         Sequence sequence = new Sequence();
-        sequence.add(new CaselessLiteral("change"));
-        sequence.add(optional(new CaselessLiteral("column")));
+        sequence.add(new CaselessLiteral("change").discard());
+        sequence.add(optional(new CaselessLiteral("column").discard()));
         // old column
         sequence.add(columnName());
         // new column
         sequence.add(columnName());
         sequence.add(columnDefinition());
+
+        sequence.setAssembler(new ChangeColumnAssembler());
         return sequence;
     }
 
