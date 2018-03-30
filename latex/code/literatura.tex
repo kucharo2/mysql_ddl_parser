@@ -1,0 +1,24 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%% 
+% Seznam literatury je v samostatnem souboru reference.bib. Ten
+% upravte dle vlastnich potreb, potom zpracujte (a do textu
+% zapracujte) pomoci prikazu bibtex a nasledne pdflatex (nebo
+% latex). Druhy z nich alespon 2x, aby se poresily odkazy.
+% originally following specification for bibliography formating was used
+% \bibliographystyle{abbrv}
+% Here is an improvment by Petr Dlouhy (April 2010).
+% It is mainly for supervisors who expect Czech fomrating rules for references
+% Additional feature is live url addresses to sources from your pdf file
+% It requires the file csplainnat.bst (included in this sample zipfile).
+\bibliographystyle{csplainnat}
+% \bibliographystyle{plain}
+% \bibliographystyle{psc}
+{
+%JZ: 11.12.2008 Kdo chce mit v techto ukazkovych odkazech take odkaz na CSTeX:
+\def\CS{$\cal C\kern-0.1667em\lower.5ex\hbox{$\cal S$}\kern-0.075em $}
+
+\bibliography{reference}
+}
+% M. Dušek radi:
+%\bibliographystyle{alpha}
+% kdy citace ma tvar [AutorRok] (napriklad [Cook97]). Sice to asi neni  podle ceske normy (BTW BibTeX stejne neodpovida ceske norme), ale je to nejprehlednejsi.
+% 3.5.2009 JZ polemizuje: BibTeX neobvinujte, napiste a poskytnete nam styl (.bst) splnujici citacni normu CSN/ISO.

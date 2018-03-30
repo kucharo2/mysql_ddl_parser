@@ -1,0 +1,231 @@
+\chapter{Syntaktická analýza}
+Syntaktickou analýzou (slangovo z angličtiny tiež \textbf{parsovaním}) sa v teórii rozumie konštrukcia derivačného stromu vety bezkontextového jazyka\cite{CVUT:program_language} popísaného v kapitole \ref{CFG}. Program, ktorý vykonáva túto úlohu sa volá syntaktický analyzátor (slangovo \textbf{parser}). Počas konštrukcie deriačného stromu parser zachováva hierarchické usporiadanie symbolov, koré je vhodné pre ďalšie spracovanie.
+
+Parsovanie je taktiež možné si predstaviť ako inverziu k napĺňaniu šablón. Šablóna definuje napríklad štruktúru textu s variablnými premennými, ktoré je treba naplniť dátami a parsovanie identufukuje túto šablónu a extrahuje dáta, ktoré boli do nej vložené.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=10cm]{figures/templatingAndParsing.PNG}
+\caption{Príklad parsovania a naplňovania šablóny}
+\label{fig:templatingAndParsing}
+\end{center}
+\end{figure}
+
+Podstata parsovania je veľmi dôležitá, pretože rôzne entity potrebujú dáta na spracovanie v rôznych formátoch. Parsovanie umožnuje transformovat získané data tak, aby im mohol porozumieť špecifický software. 
+
+\section{Parsovanie pomocou regulárnych výrazov}
+Regulárne výrazy (\ref{regexp}) poskytujú možnosť zápisu regulárnych jazykov, ktorých fungovanie je postavené na deterministických konečných automatoch (\ref{DFA}).
+
+O regulárných výrazoch sa často horoví, že by nemali byť použité na parsovanie. Nie vždy to ale je pravda, pretože je možné použiť regulárne výrazy na parsovanie jednoduchých vstupov. Niektorý programátori nepoznajú iné možnosti a snažia sa všetko parsovať s použitím regulárných výrazov aj keď by nemali. Výsledkom toho je séria regulárnych výrazov spojených v jeden, čím sa parsovanie môže jednoducho stať vysoko náchylným k chybám.
+
+Parsovanie pomocou regulárnych výrazov je naozaj možné, ale iba pre regulérne jazyky. Pokiaľ sa v jazyku, ktorý sa snažíme parsovať, objavia vnorené alebo rekurzívne elemety, nejedná sa už o regulérny jazyk, ale o jazyk \textit{bezkontextový} (\ref{CFG}). Väčšina programovacích jazykov spadá pod bezkontextové jazyky, a preto nie je možné tieto jazyky parsovať regulérnymi výrazmi.
+
+\subsection{Deterministický konečný automat}\label{DFA}
+Konečné automaty sa používajú v rôznych oboroch ako napríklad pri prekladačoch, spracovávaní prirodzeného jazyka, pri návrhu hardwaru a ďalších \cite{demlova:automaty}. Predstavujú model systémov, ktoré rozpoznajú, či je vstupný reťazec patrí do jazyka. Deterministický konečný automat (\nom{DFA}{Deterministic Finite Automaton}), taktiež aj \textit{akceptor} je najpoužívanejší zo štyroch typov automatov.
+
+\begin{definice}
+\textit{Deterministický konečný automat} $M$ je pätica $M = (Q,\Sigma,\delta, q_0, F)$, kde
+\begin{itemize}
+\item $Q$ je konečná množina stavov
+\item $\Sigma$ je konečná množina vstupných symbolov
+\item $\delta$ je prechodová funkcia $\delta: Q \times \Sigma \rightarrow Q$
+\item $q_0$ je počiatočný stav
+\item $F \subseteq Q$ je množina koncových stavov \cite{demlova:automaty}
+\end{itemize}
+\end{definice}
+
+Konečný automat je možné prehľadne znázorniť formou stavového diagramu. \textit{Stavový diagram} je orientovaný graf, v ktorom sú uzly ohodnotené stavmi automatu a hrany vstupnými symbolmy automatu. Z uzlu $q$ vedie hrana ohodnotená symbolom $a$ do uzlu $p$ vtedy, ak $\delta(q,a) = p$. Počiatočný stav sa označuje šipkou, ktorá neprichádza zo žiadneho iného stavu a uzly ohodnotené koncovými stavmi označujeme dvojitým krúžkom. Príklad takto znázorneného DFA je na obrázku \ref{fig:DFA_example}.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=8cm]{figures/DFA_example.PNG}
+\caption{Príklad DFA znázorneného pomocou stavového diagramu}
+\label{fig:DFA_example}
+\end{center}
+\end{figure}
+
+\begin{definice}[\textbf{Jazyk príjmaný konečným automatom}]
+Je daný DFA $M = (Q,\Sigma,\delta, q_0, F)$. Slovo $u \in \Sigma^*$ je \textit{príjmané} automatom $M$ práve vtedy, keď
+\begin{center}
+$\delta^*(q_0,u) \in F$.
+\end{center}
+Množina vštkých slov, ktoré automat príjma sa nazýva \textit{jazyk príjmaný} $M$ a značíme ju $L(M)$. Platí teda
+\begin{center}
+$L(M) = \{\omega|\delta^*(q_0,u) \in F\}$.\cite{demlova:automaty}
+\end{center}
+\end{definice}
+
+Každý jazyk $L$, pre ktorý existuje deterministický konečný automat príjmajúci tento jazyk, sa nazýva \textbf{regulárny jazyk}.
+
+\subsection{Regulárny výraz}\label{regexp}
+Regulárny výraz je ďalšia možnosť ako popísať regulárne jazyky, ktoré sú uzavrené vzhľadom k opeáciam zjednotenia, súčinu a iterácie. Regulárne výrazy sú postavené na Kleeneho operátore(*), ktorý sa používa na označenie, že určitý prvok může byť prítomný nula alebo nekonečne veľa krát.
+\begin{definice}[\textbf{Regulárne výrazy nad abecedou}]
+Je dána abeceda $\Sigma$. Množina všetkých regulárnych výrazov nad $\Sigma$ je definovaná induktívne:
+\begin{itemize}
+\item $\emptyset$ je regulárny výraz,
+\item $\epsilon$ je regulárny výraz,
+\item \textbf{a} je regulárny výraz pre každé písmeno $a \in \Sigma$,
+\item pokiaľ sú \textbf{r$_1$} a \textbf{r$_2$} regulárne výrazy, tak \textbf{r$_1$ + r$_2$}, \textbf{r$_1$r$_2$} a \textbf{r$_1^*$} sú regulérne výrazy. \cite{demlova:automaty}
+\end{itemize}
+\end{definice}
+
+Podpora regulárnych výrazov je dostupná u väčšiny programovacích jazykov. Pre zjednodušenie zápisu sú definované viaceré znaky, ktoré vychádzajú zo spomenutých základnch operácií. Ich najčastejšie využitie je na vyhľadávanie v texte.
+
+% You can implement a lexer using the regular expression engine provided by your language. However usually the regular expressions defined in the grammar are converted are actually converted to a finite-state machine to gain better performance.
+
+\subsection{Bezkontextový jazyk}\label{CFG}
+Bezkontextový jazyk je jazyk nad abecedou, ktorý je príjmaný bezkontextovou gramatikou. Gramatikou sa rozumie súpis pravidiel, ktoré určujú ako vygenerovať všetky slová daného jazyka. Bezkontextová gramatika reprezentuje silnejšiu metódu popisovania jazykov, pomocou ktorej je možné opísať vlastnosti, ktoré majú rekurzívnu štruktúru.
+
+\begin{definice}
+\textit{Bezkontextová gramatika} je usporiadaná štvorica $\mathcal{G} = (N, \Sigma , S, P)$, kde
+\begin{itemize}
+\item $N$ je konečná množina tzv. \textit{neterminálov}\footnote{Premenné symmboli, ktoré sa reprezentjú pomocou velkých písmen}
+\item $\Sigma$ je konečná neprázdna množina tzv. \textit{terminálov}\footnote{Písmená vstupnej abecedy, často reprezentované malými písmenami, číslami alebo špeciálnymi symbolmi}, kde platí $N \cap \Sigma = \emptyset$
+\item $S \in N$ je \textit{štartovací symbol}
+\item $P$ je konečná množina pravidiel typu $\alpha \rightarrow \beta$, kde $\alpha$ a $\beta$ sú slová nad $N \cup \Sigma$ taká, že $\alpha$ obsahuje aspoň jeden neterminál. 
+\item každé pravidlo $P$ je v tvare $A \rightarrow \gamma$, kde $\gamma \in (n \cup \Sigma)*$ a $A$ je neterminál \cite{demlova:gramatiky}
+\end{itemize}
+\end{definice}
+
+Bezkontextové gramatiky sa prvykrát používali pri štúdií ľudských jazykov na pochopenie vzťahu medzi podstatným menom, slovesom a predložkou. Ich kombináciou vznikajú frázy, ktoré vedú k prirodzenej rekurzii, nakoľko podstatné meno môže byť súčasťou slovesnej frázy a pod. Bezkontextové gramatiky dokážu zachytiť dôležité aspekty týchto vzťahov \cite{computation_theory}.
+
+Špecifikácia a kompilácia programovacích jazykov je jedným z použití bezkontextovej gramatiky. Gramatika programovacieho jazyka sa často používa na pochopenie jeho syntaxe.
+
+V nasledujúcom príklade je ukážka bezkontextovej gramatiky $G_1$.
+\begin{center}
+\begin{tabular}{p{0.12\textwidth}}
+$A \rightarrow 0A1$\\
+$A \rightarrow B$\\
+$B \rightarrow $\#
+\end{tabular}
+\end{center}
+
+Z týchto pravidiel je možné poskladať strom pravidiel, v ktorom je množina terminálov $\Sigma \in \{0,1,\#\}$, množina neterminálov $N \in \{A, B\}$ a štarrtovací symbol je $A$. 
+
+\begin{definice}[\textbf{Derivace}]
+Je daná gramatika $\mathcal{G} = (N, \Sigma , S, P)$. Povedzme, že $\delta$ sa \textit{odvodí} z $\gamma$ vtedy, ak
+\begin{itemize}
+\item buď $\gamma = \delta$
+\item alebo existuje postupnost priamych odvodení
+\end{itemize}
+\begin{center}
+$\gamma = \gamma_1 \Rightarrow_\mathcal{G} \gamma_2 \Rightarrow_\mathcal{G} ... \Rightarrow_\mathcal{G} \gamma_k = \delta$
+\end{center}
+Tento fakt sa označuje $\gamma\Rightarrow_\mathcal{G}^*\delta$ a tejto konečnj postupnosti hovoríme \textit{derivácia}. \cite{demlova:gramatiky}
+\end{definice}
+
+Pre príklad, gramatika $G_1$ generuje  reťazec \textit{000\#111}. Dervácia tohto reťazca bude vyzerať následovne
+\begin{center}
+$A \Rightarrow 0A1 \Rightarrow 00A11 \Rightarrow 000A111 \Rightarrow 000B111 \Rightarrow 000\#111$
+\end{center}
+
+Rovnakú informáciu je možné reprezentovat graficky pomocou sparsovaného (derivačného) stromu. Príklad derivačného stromu je na obrázku \ref{fig:derivacni_strom}. 
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=5cm]{figures/derivacni_strom.PNG}
+\caption{Derivačný strom gramatiky $\mathcal{G}_1$ pre reťazec \textit{000\#111}}
+\label{fig:derivacni_strom}
+\end{center}
+\end{figure}
+
+Množina všetkých reťazcov, ktoré je možné generovať týmto spôsobom sa nazýva jazyk gramatiky $L$. Jednoduchým pohľadom na gramtiku $G_1$ je možné povedať, že jazyk gramatiky $L(G_1) \in \{0^n\#1^n | n \geq 0\}$. Všetky jazyky generované bezkontextovou gramatikou sa nazývajú \textbf{bezkontextové jazyky}.
+
+\begin{definice}[\textbf{Jazyk generovaný gramatikou}]
+Povedzme, že slovo $\omega \in \Sigma^*$ je \textit{generované} gramatikou $\mathcal{G}$, ak existuje derivácia $S\Rightarrow_\mathcal{G}^*\omega$.
+
+\textit{Jazyk $L(\mathcal{G})$ generovaný} gramatikou $\mathcal{G}$ sa skladá zo všetkých slov generovaných gramatikou $\mathcal{G}$, tj.
+\begin{center}
+$L(\mathcal{G}) = \{\omega \in \Sigma^* | S \Rightarrow_\mathcal{G}^* \omega\}$.\cite{demlova:gramatiky}
+\end{center}
+\end{definice}
+
+\subsection{Backus-Naur Form notácia}\label{BNF}
+Pri popisovaní jazyka mnohých programovacích jazykov, protokolov alebo formátov sa vo svojej špecifikácii používa zápis pomocou Backus-Naur Form (\nom{BNF}{Backus-Naur Form}) notácie.\cite{might:languages} 
+
+Každé pravidlo v BNF má následujúcu štruktúru:
+\begin{center}
+\textit{<neterminál> ::= výraz}
+\end{center}
+
+Všetky netreminály v BNF sa zapisujú do špicatých zátvoriek \textit{< >}, či už sú použité na pravej alebo lavej strane pravidla. Výraz sa môže obsahovať terminály aj neterminály a je definovaný ich spojením, alebo výberom. Symboli vo výraze postavené vedľa seba určujú postupnosť symbolov a použitie znaku vertikálnej lišty určuje výber zo symbolov.
+
+\subsection{Rozšírená Backus-Naur Form notácia}\label{EBNF}
+Pre zjednodušenie zápisu gramatiky, a aby bolo možné jednoduhšie definovať určité typy pravidel vznikla kolekcia rozširení k Backus-Naur Form notácii (\nom{EBNF}{Extended Backus-Naur Form}), ktorá bola štandardizovaná ako ISO/IEC 14997\cite{ISO14977}. Terminály môžu byť vyjadrené konkrétnym postupom znakov v uvodzovkách, alebo pomocou triedy literálov, ktorú je možné zapísať pomocou regulárneho výrazu. Priradzovací znak pravidla je zmenený z ::= na jednoduché = a vynecáhva sa zápis špicatých zátvoriek okolo neterminálov. Tieto malé syntaktické zmeny nie sú tak dôležité ako dodatočné operácie EBNF, ktoré sa môžu použiť vo výraze.
+
+\textbf{Nepovinosť} - Použitím hranatých zátvoriek okolo výrazu \textit{[výraz]} sa indikuje možosť použitia tohto výrazu v sekvencii. Jednoduhšie povedané, výraz môže, ale nemusí byť použitý vo výsldnej sekvencii. Príklad: 
+\begin{center}
+term = ["\text{-}"] factor
+\end{center}
+
+\textbf{Zlučovanie} - Aby bolo možné identifikovať prioritu sekvencie symbolov, EBNF používa klasické zátvorky, čím jednoznačne definuje poradie výrazov. V príklade je zapísaná gramatika, ktorá príjmá matematické sčítanie a odčítanie:
+\begin{center}
+expr = term ("\text{+}" \text{|} "\text{-}") expr
+\end{center}
+
+\textbf{Opakovanie} - Použitím zložených zátvoriek okolo výrazu \textit{\{výraz\}} je možné indikovať opakovanie výazu. To znamená, že výraz sa nemusí v sekvencii vyskytovať, ale zároveň môže byť nekonečne krát zasebou. Toto je pravidlo je taktiež možné zapísať pomocou znaku *. Príklad:
+\begin{center}
+args = arg \{"," \text{ }arg\}\\
+args = arg ("," \text{ }arg)$^*$
+\end{center}
+
+\textbf{Spájanie} - Namiesto toho aby sa autor gramatiky spoliehal na postavenie výrazov vedľa seba, má možnosť spájať výrazy aj pomocou znaku čiarky.
+
+Každú gramatiku zapísanú cez EBNF je možné taktiež zpísať pomocou BNF, to ale vedie k omnoho obsiahlejšiemu množstvu definičných pravidiel. V nasledujúcich príkladoch sú znároznené 2 rôzne zápisy v EBNF gramatiky z kapitoly \ref{CFG}:
+\begin{center}
+\begin{tabular}{p{0.25\textwidth}}
+A = ("0" \text{ A} "1") | B\\
+B = "\#"\\\\
+
+A = ("0")$^*$ "\#" \text{ (}"1")$^*$
+\end{tabular}
+\end{center}
+
+\section{Štruktúra bezkontextových parserov}
+Syntaktickej analýze zpravidla predchádza \textit{lexikálna analýza}, pri ktorej sa vstupný reťazec rozdeľuje na postupnosť lexikálnych symbolov (lexémov). V programovacích jazykoch sa taktiež nazývajú \textbf{tokeny} a definujú identifikátory, literály (čísla, reťazce), kľúčové slová, operátory, oddeľovače a pod. Pre parser sú tokeny ďalej nedelteľné stabevbné jednotky, ktoré používa pri interpretácií vstupných dát. Porgram vykonávajúci túto úlohu sa nazýva štrukturálny analyzátor, no v programovaní sa častejšie narazí na výraz \textbf{lexer} alebo \textbf{tokenizer} bližšie popísaný v kapitole \ref{lexer}. 
+
+V kontexte parsovania sa slovo parser môže odkazovať na program, ktorý vykonáva celý proces ale aj na správny parser (syntaktický analyzátor), ktorý analyzuje tokeny vytvorené lexerom. Dôvodom toho je, že parser sa stará o najdôležitejšiu a najťažšiu čast celého procesu parsovania. Lexer hraje v procese parsovania iba úlohu pomocníka na uľahčenie práce parseru.
+
+Parsre sú významnou súčasťov kompilátorov alebo interpretorov programovacích jazykov, no samozrejme môžu byť súčasťou aj rôznych typov programov. Čo sa týka parsovania programovacích jazykov, parser dokáže určiť iba syntakticú korektnosť parsovaného výrazu. Výstup parseru je ale základom pre zistanie sémantickej korektnosti.
+
+\subsection{Lexer}\label{lexer}
+Lexey zohrávajú dôležitú  rolu pri parsovaní, pretože transformujú počiatočný vstup na jednoduhšie spracovateľnú formu pre parser. Napísanie gramatiky pre lexer je zvyčajne jednodušie nakoľko nie je nutné riešit vymoženosti bezkotextového jazyka ako je napríklad opakovanie, rekurzia a podobne.
+
+Jedna z veľmi dôležitých úloh lexera je vysporiadanie sa z medzerami v parsovanom výraze. Vo väčšine prípadoch chceme, aby prázdne medzery boli lexerom odstránené. Ak by sa tak nestalo, znamenalo by to, že by sa s nimi musel vysporiadať samotný parser. To by znamenalo ich kontorlu pri každom jednom použitom tokene, čo by sa rýchlo stalo nepríjemným.
+
+Existujú prípady, kedy to nemôžeme urobiť, pretože medzery sú pre daný jazyk relevantné, ako napríklad v prípade Pythonu, kde sa používa identifikácia bloku kódu a je nutné určiť, ktoré medzery sú pre parser dôležité. Aj napriek tomu je zvyčajne lexer zodpovedný za riešenie problému, ktorá medzera je relevantná a ktorá nie. Napríklad pri parsovaní Pythonu chceme, aby lexer overil, či medzery definujú odsadenie (relevantná) alebo medzery medzi slovami (irelevantná). \cite{tomassetti:parsing}
+
+Lexer prečíta vstupný preťazec a rozdelí ho na predom definované typy tokenov. Na definíciu týchto typov sa použvajú regulérne výrazy, nakoľko rozdelenie na tokeny spadá pod problém regulárnej gramatiky. Ako už bolo spomenuté na spracovanie regulárnej gramatiky sa používa algoritmus pre DFA(\ref{DFA}).
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=14cm]{figures/lexer_parser.PNG}
+\caption{Spracovanie reťazca \textit{123 + 321} lexerom a parserom}
+\label{fig:lexer_parser}
+\end{center}
+\end{figure}
+
+Pre príklad z obrázku \ref{fig:lexer_parser}  máme dva typy tokenov. \textbf{NUM} vyjadrujúci akékoľvek prirodzené číslo a \textbf{PLUS} vyjadrujúci znak súčtu (+). Keď sa lexer bude snažiť analyzovať reťazec \textbf{123 + 321}, bude čítat znaky \textit{1,2,3} a potom znak medzery. V tomto momente lexer rozpozná, že postupnosť znakov \textit{123} súhlasí z definíciou tokenu typu NUM. Následne prečíta znak \textit{+}, ktorý sa zhoduje s druhým typom tokenu PLUS a nakoniec objaví posledný token typu NUM. Takto definované tokeny použije parser na vyhodnotenie výsledného výrazu. Bezkontextová gramatika pre takýto parser by mohla vyzerať následovne:
+
+\begin{center}
+\begin{tabular}{p{0.35\textwidth}}
+\textbf{sum} = NUM \{PLUS NUM\}
+\end{tabular}
+\end{center}
+
+Vzhľadom na to, že lexery sú takmer výlučne používané v spojení s parsermi, je nutné si určiť hranicu, kde končí práca lexeru a začína práca parseru. Táto hranica nemusí byť vždy jasná a všetko to závisí na konkrétnej potrebe programu, pre ktorý je parser vytváraný. Pre príklad si môžme predstaviť program, ktorý parsuje vstup obsahujúci IP adresu. Pokiaľ programu stačí poznať hodnotu IP adresy, tak je možné vytvoriť token v lexeru, ktorý popisuje celý formát IP adresy a parser pri svojej analýze použije iba tento token. 
+\begin{center}
+IPv4 = [0-9]+ "."\text{ [}0-9]+ "."\text{ [}0-9]+ "."\text{ [}0-9]+
+\end{center}
+
+Ak by bol ale problém zložitejsí a program by chcel analzovať IP adresu a zistiť z nej informácie ako napríklad krajinu, bude parser potrebovať jednotlivé hodnoty IP adresy samostatne. V tomto prípadde lexer rozdelí IP adresu na dve druhy tokenov (číslo a bodka).
+
+\begin{center}
+\begin{tabular}{p{0.65\textwidth}}
+\color{editorGray}{/* Lexer */}\\
+DOT   = "\text{.}"\\
+OCTEC = [0-9]+\\
+\color{editorGray}{/* Parser */}\\
+ipv4  = OCTET DOT OCTET DOT OCTET DOT OCTET
+\end{tabular}
+\end{center}
