@@ -1,8 +1,6 @@
 \chapter{Aktuálne riešenie MySQL konektoru}
 Projekt Debezium sa zkladá z viacerých častí. Hlavnou časťou je modul systému, ktorý je spoločný pre všetky typy konektorov podporovaných Debeziom. Tento modul zaobstaráva základnú funkcionalitu spojenú s CDC, ktorú tento systém podporuje. Definuje model sledovaných dát, na základe ktorých si systém udržuje aktuálne schémata tabuliek a ich dátový stav v pamäti. Jedným z týchto podporovaných konektorov je aj konektor pre MySQL databázu \ref{debezium:mysql_connector}.
 
-\textbf{TODO co viac k tomu ?} 
-
 \section{MySQL konektor}\label{debezium:mysql_connector}
 Minimálnou podporovanou verziou MySQL je aktálne verzia 5.6. MySQL konektor Debezia dokáže sledovať zmeny v databázy na úrovni jednotlivých riadkov v tabuľkách pomocou čítania databázového binlogu (\ref{mysql:binlog}). Pri prvom pripojení na MySQL server si konetor vytvorí aktuálny obraz všekých tabuliek (\ref{debezium:conistent_snapshot}) a následne sleduje všetky komitnuté zmeny, na základe ktorých vytvára jednotlivé \textit{insert}, \textit{update} a \textit{delete} eventy. Pre každú tabuľku je vytvorený separátny topik v Kafke v ktorom sa ukladajú eventy spojené z danou tabuľkou. Týmto spôsobom je zabezpečený štart s konzistentným obrazom všetkých dát.
 
@@ -21,7 +19,7 @@ Binárny log neobsahuje události, ktoré nemajú žiadny efekt na dáta ako nap
 \item \textbf{Row-based} logovanie, v ktorom události popisujú zmeny pre jednotlivé riadky v tabuľkách. Pri replikácií sa kopírujú události, ktoré reprezentujú zmeny riadkov v tabuľkách na slave serveri. 
 \end{itemize}
 
-Pre účely CDC v Debeziu je používané row-based logovanie, nakoľko zalogované události obsahujú zmeny pre konkrétne riadky v tabuľkách a tým pádom nieje nutné dopočítavať dáta, ktoré by boli na základe daného dotazu zmenené. Master server ukladá do binlogu iba kompletné a vykonané transakcie, čo znamená, že sa tam nemôžu objaviť syntakticky nevalidné dotazy. V MySQL konektoru teda nie je nutné sledovať korektnosť parsovaných dotazov.
+Pre účely CDC v Debeziu je používané row-based logovanie, nakoľko zalogované události obsahujú zmeny pre konkrétne riadky v tabuľkách a tým pádom nieje nutné dopočítavať dáta, ktoré by boli na základe daného dotazu zmenené. Master server sa snaží ukladať do binlogu iba kompletné a vykonané transakcie, no bohužial prax ukázala, že existujú aj výnimky. To znamená, že výskyt syntakticky nevalidných dotazov je možný, ale zároveň veľmi ziedkavý. V MySQL konektoru teda nie je nutné sledovať korektnosť parsovaných dotazov.
 
 Pomocou SQL dotazu \textit{SHOW BINARY LOGS} je možné vylistovať aktuálne existujúce binárne logy na serveri. Následne dotazom \textit{SHOW BINLOG EVENTS [IN 'log\_name']  [FROM pos] [LIMIT [offset,] row\_count]} je možné sledovať informácie o všetkých událostiach obsiahnutých v danom binlogu ako sú napríklad typ události, jeho začiatočná a jeho konečná pozícia v logu. Na čítanie a spracovávanie binlogu ponúka MySQL nástroj \textit{mysqlbinlog}, ktorý je možné spustiť príkazom \textit{mysqlbinlog [options] log\_file}. Prvý riadok události vždy obsahuje prefix \textit{\# at} za ktorým následuje číslo reprezentujúce pozíciu události v binlogu. Podľa základného nastavenia MySQL zobrazuje mysqlbinlog události týkajúce sa zmien na úrovní riadkov zakódované ako base-64\footnote{Typ kódovania, ktorý prevádza binárne dáta na postupnost znakov} použitím interného príkazu \textit{BINLOG}. Aby bolo možné vidieť tento pseudokód je možné použiť prepínač \textit{---verbose} alebo \textit{-v}. Na výstupe bude možné vidiet tento pseudokód na riadkoch, ktoré budú začínať prefixom  \textit{\#\#\#}. Použitím prepínača \textit{---verbose} alebo \textit{-v} dvakrát, môžeme nastaviť aj zobrazovanie dátových typov a iných metadát pre každý stĺpec. Aby sa v logu nezobrazoval interný príkaz \textit{BINLOG} a zakódovaná hodnota události, je možné použiť prepínač \textit{---base64-output=DECODE-ROWS}. Kombináciou týchto prepínačov získame možnosť pohodlne sledovat obsah události týkajúcich sa zmien v dátach. \cite{mysql:reference_manual}
 % https://dev.mysql.com/doc/refman/5.7/en/mysqlbinlog-row-events.html
@@ -58,7 +56,7 @@ Pri kažnom vytváraní aktuálneho obrazu, konektor postupuje podľa týchto kr
 \item Uvolní globálny zámok, aby ostaný databázový klienti mohli znovu zapisovať do databáze.
 \item Voliteľne zapíše zmeny DDL do Kafka topiku vrátane všetkých potrebných SQL dotazov.
 \item Oskenuje všetky databázové tabuľky a vygeneruje príslušné \textit{create} události  Kafka topiky pre jednotlivé riadky v tabuľkách.
-\item Commitne transakciu.
+\item Potvrdí transakciu.
 \item Do konektorového offsetu zaznamená, že úspešne ukončil vytváranie obrazu.
 \end{enumerate}
 
@@ -130,6 +128,4 @@ create_definition:
     ...
 \end{lstlisting}
 
-Metóda \inlinecode{parseCreateTable} sa snaží najprv skonzumovať nepovinné slovo \textit{TEMPORARY}, potom slovo \textit{TABLE}, nepovinný fragment \textit{IF NOT EXISTS} a následne konzumuje a parsuje názov tabuľky. Ak by dotaz obsahoval fragment \textit{LIKE otherTable}, tak sa použije objekt \inlinecode{Tables}, z ktorého sa získa definícia odkazovanej tabuľky. V ostatných prípadoch sa na úpravu stávajúcej tabuľky použije \inlinecode{TableEditor} objekt. Takýmto spôsobom parser pokračuje vo svojej činnositi ďalej a snaží sa parsovať dotaz na základe pravidiel gramatiky.
-
-\textbf{TODO: spisat info ohladne ukladanych informacii}
+Metóda \inlinecode{parseCreateTable} sa snaží najskôr skonzumovať nepovinné slovo \textit{TEMPORARY}, potom slovo \textit{TABLE}, nepovinný fragment \textit{IF NOT EXISTS} a následne konzumuje a parsuje názov tabuľky. Ak by dotaz obsahoval fragment \textit{LIKE otherTable}, tak sa použije objekt \inlinecode{Tables}, z ktorého sa získa definícia odkazovanej tabuľky. V ostatných prípadoch sa na úpravu stávajúcej tabuľky použije \inlinecode{TableEditor} objekt. Takýmto spôsobom parser pokračuje vo svojej činnositi ďalej a snaží sa parsovať dotaz na základe pravidiel gramatiky.
