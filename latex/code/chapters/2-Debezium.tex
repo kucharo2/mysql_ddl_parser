@@ -73,7 +73,7 @@ Kafka Connect je framework, ktorý umožnuje jednoduchú implementáciu dátový
 \end{center}
 \end{figure}
 
-Pre príklad si povedzme, že jedna událosť v MySQL binlogu má veěkosř 20. Na obrázku \ref{fig:kafka_offsets} je možné vidieť situáciu, kedy sa konektoru podarilo prečítať a spracovať události z MySQL binlogu nachádzajúce sa na pozíciách 100 a 120. Ich príslušné správy sú dostupné v Kafke s nastaveným Kafka offsetom 1 a 2. Kafka Connect má v tejto sitácií offset rovný 159, nakoľko to je posledná prečítaná pozícia. Použitím Kafka Connect je zabezpečené, že po každom spracovaní události konektor potvrdí svoj offset a ak by konektor musel byť reštartovaný tak môže zistiť posledný potvrdený offset a pokračovať v čítaní logu z nasledujúcej pozície.
+Pre príklad si povedzme, že jedna událosť v MySQL binlogu má veľkosť 20. Na obrázku \ref{fig:kafka_offsets} je možné vidieť situáciu, kedy sa konektoru podarilo prečítať a spracovať události z MySQL binlogu nachádzajúce sa na pozíciách 100 a 120. Ich príslušné správy sú dostupné v Kafke s nastaveným Kafka offsetom 1 a 2. Kafka Connect má v tejto sitácií offset rovný 159, nakoľko to je posledná prečítaná pozícia. Použitím Kafka Connect je zabezpečené, že po každom spracovaní události konektor potvrdí svoj offset a ak by konektor musel byť reštartovaný tak môže zistiť posledný potvrdený offset a pokračovať v čítaní logu z nasledujúcej pozície.
 
 Ďalším prínosom je možnosť konfigurácie schémy správ. Kafka Connect má svoj systém na definovanie typu dát, ktorým umožnuje popísať štruktúru kľúčov a hodnôt v správach. Bližšie popísané v kapitole \ref{ssec:message_structure}.
 

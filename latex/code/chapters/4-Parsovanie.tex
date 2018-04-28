@@ -13,12 +13,8 @@ Parsovanie je taktiež možné si predstaviť ako inverziu k napĺňaniu šabló
 
 Podstata parsovania je veľmi dôležitá, pretože rôzne entity potrebujú dáta na spracovanie v rôznych formátoch. Parsovanie umožnuje transformovat získané data tak, aby im mohol porozumieť špecifický software. 
 
-\section{Parsovanie pomocou regulárnych výrazov}
-Regulárne výrazy (\ref{regexp}) poskytujú možnosť zápisu regulárnych jazykov, ktorých fungovanie je postavené na deterministických konečných automatoch (\ref{DFA}).
-
-O regulárných výrazoch sa často horoví, že by nemali byť použité na parsovanie. Nie vždy to ale je pravda, pretože je možné použiť regulárne výrazy na parsovanie jednoduchých vstupov. Niektorý programátori nepoznajú iné možnosti a snažia sa všetko parsovať s použitím regulárných výrazov aj keď by nemali. Výsledkom toho je séria regulárnych výrazov spojených v jeden, čím sa parsovanie môže jednoducho stať vysoko náchylným k chybám.
-
-Parsovanie pomocou regulárnych výrazov je naozaj možné, ale iba pre regulérne jazyky. Pokiaľ sa v jazyku, ktorý sa snažíme parsovať, objavia vnorené alebo rekurzívne elemety, nejedná sa už o regulérny jazyk, ale o jazyk \textit{bezkontextový} (\ref{CFG}). Väčšina programovacích jazykov spadá pod bezkontextové jazyky, a preto nie je možné tieto jazyky parsovať regulérnymi výrazmi.
+\section{Teória parsovania}
+Na správne pochopenie problému parsovania je nutné si najprv zadefinovať základné pojmy, ktoré sú s ním spojené. Teória parsovania je postavená na teórii jazykov, gramatík a automatov, z ktorej najdôležitejšie pojmi sú definované v rámci tejto sekcie.
 
 \subsection{Deterministický konečný automat}\label{DFA}
 Konečné automaty sa používajú v rôznych oboroch ako napríklad pri prekladačoch, spracovávaní prirodzeného jazyka, pri návrhu hardwaru a ďalších \cite{demlova:automaty}. Predstavujú model systémov, ktoré rozpoznajú, či je vstupný reťazec patrí do jazyka. Deterministický konečný automat (\nom{DFA}{Deterministic Finite Automaton}), taktiež aj \textit{akceptor} je najpoužívanejší zo štyroch typov automatov.
@@ -44,7 +40,7 @@ Konečný automat je možné prehľadne znázorniť formou stavového diagramu. 
 \end{center}
 \end{figure}
 
-\begin{definice}[\textbf{Jazyk príjmaný konečným automatom}]
+\begin{definice}[\textbf{Jazyk príjmaný konečným automatom}]\label{def:regular_language}
 Je daný DFA $M = (Q,\Sigma,\delta, q_0, F)$. Slovo $u \in \Sigma^*$ je \textit{príjmané} automatom $M$ práve vtedy, keď
 \begin{center}
 $\delta^*(q_0,u) \in F$.
@@ -74,7 +70,7 @@ Podpora regulárnych výrazov je dostupná u väčšiny programovacích jazykov.
 % You can implement a lexer using the regular expression engine provided by your language. However usually the regular expressions defined in the grammar are converted are actually converted to a finite-state machine to gain better performance.
 
 \subsection{Bezkontextový jazyk}\label{CFG}
-Bezkontextový jazyk je jazyk nad abecedou, ktorý je príjmaný bezkontextovou gramatikou. Gramatikou sa rozumie súpis pravidiel, ktoré určujú ako vygenerovať všetky slová daného jazyka. Bezkontextová gramatika reprezentuje silnejšiu metódu popisovania jazykov, pomocou ktorej je možné opísať vlastnosti, ktoré majú rekurzívnu štruktúru.
+Bezkontextový jazyk je jazyk nad abecedou, ktorý je príjmaný bezkontextovou gramatikou (\nom{CFG}{context-free grammar}). Gramatikou sa rozumie súpis pravidiel, ktoré určujú ako vygenerovať všetky slová daného jazyka. CFG reprezentuje silnejšiu metódu popisovania jazykov, pomocou ktorej je možné opísať vlastnosti, ktoré majú rekurzívnu štruktúru.
 
 \begin{definice}
 \textit{Bezkontextová gramatika} je usporiadaná štvorica $\mathcal{G} = (N, \Sigma , S, P)$, kde
@@ -87,9 +83,9 @@ Bezkontextový jazyk je jazyk nad abecedou, ktorý je príjmaný bezkontextovou 
 \end{itemize}
 \end{definice}
 
-Bezkontextové gramatiky sa prvykrát používali pri štúdií ľudských jazykov na pochopenie vzťahu medzi podstatným menom, slovesom a predložkou. Ich kombináciou vznikajú frázy, ktoré vedú k prirodzenej rekurzii, nakoľko podstatné meno môže byť súčasťou slovesnej frázy a pod. Bezkontextové gramatiky dokážu zachytiť dôležité aspekty týchto vzťahov \cite{computation_theory}.
+CFG sa prvykrát používali pri štúdií ľudských jazykov na pochopenie vzťahu medzi podstatným menom, slovesom a predložkou. Ich kombináciou vznikajú frázy, ktoré vedú k prirodzenej rekurzii, nakoľko podstatné meno môže byť súčasťou slovesnej frázy a pod. Bezkontextové gramatiky dokážu zachytiť dôležité aspekty týchto vzťahov \cite{computation_theory}.
 
-Špecifikácia a kompilácia programovacích jazykov je jedným z použití bezkontextovej gramatiky. Gramatika programovacieho jazyka sa často používa na pochopenie jeho syntaxe.
+Špecifikácia a kompilácia programovacích jazykov je jedným z použití CFG. Gramatika programovacieho jazyka sa často používa na pochopenie jeho syntaxe.
 
 V nasledujúcom príklade je ukážka bezkontextovej gramatiky $G_1$.
 \begin{center}
@@ -153,23 +149,23 @@ Všetky netreminály v BNF sa zapisujú do špicatých zátvoriek \textit{< >}, 
 \subsection{Rozšírená Backus-Naur Form notácia}\label{EBNF}
 Pre zjednodušenie zápisu gramatiky, a aby bolo možné jednoduhšie definovať určité typy pravidel vznikla kolekcia rozširení k Backus-Naur Form notácii (\nom{EBNF}{Extended Backus-Naur Form}), ktorá bola štandardizovaná ako ISO/IEC 14997\cite{ISO14977}. Terminály môžu byť vyjadrené konkrétnym postupom znakov v uvodzovkách, alebo pomocou triedy literálov, ktorú je možné zapísať pomocou regulárneho výrazu. Priradzovací znak pravidla je zmenený z ::= na jednoduché = a vynecáhva sa zápis špicatých zátvoriek okolo neterminálov. Tieto malé syntaktické zmeny nie sú tak dôležité ako dodatočné operácie EBNF, ktoré sa môžu použiť vo výraze.
 
-\textbf{Nepovinosť} - Použitím hranatých zátvoriek okolo výrazu \textit{[výraz]} sa indikuje možosť použitia tohto výrazu v sekvencii. Jednoduhšie povedané, výraz môže, ale nemusí byť použitý vo výsldnej sekvencii. Príklad: 
+\textbf{Nepovinosť} -- Použitím hranatých zátvoriek okolo výrazu \textit{[výraz]} sa indikuje možosť použitia tohto výrazu v sekvencii. Jednoduhšie povedané, výraz môže, ale nemusí byť použitý vo výsldnej sekvencii. Príklad: 
 \begin{center}
 term = ["\text{-}"] factor
 \end{center}
 
-\textbf{Zlučovanie} - Aby bolo možné identifikovať prioritu sekvencie symbolov, EBNF používa klasické zátvorky, čím jednoznačne definuje poradie výrazov. V príklade je zapísaná gramatika, ktorá príjmá matematické sčítanie a odčítanie:
+\textbf{Zlučovanie} -- Aby bolo možné identifikovať prioritu sekvencie symbolov, EBNF používa klasické zátvorky, čím jednoznačne definuje poradie výrazov. V príklade je zapísaná gramatika, ktorá príjmá matematické sčítanie a odčítanie:
 \begin{center}
 expr = term ("\text{+}" \text{|} "\text{-}") expr
 \end{center}
 
-\textbf{Opakovanie} - Použitím zložených zátvoriek okolo výrazu \textit{\{výraz\}} je možné indikovať opakovanie výazu. To znamená, že výraz sa nemusí v sekvencii vyskytovať, ale zároveň môže byť nekonečne krát zasebou. Toto je pravidlo je taktiež možné zapísať pomocou znaku *. Príklad:
+\textbf{Opakovanie} -- Použitím zložených zátvoriek okolo výrazu \textit{\{výraz\}} je možné indikovať opakovanie výazu. To znamená, že výraz sa nemusí v sekvencii vyskytovať, ale zároveň môže byť nekonečne krát zasebou. Toto je pravidlo je taktiež možné zapísať pomocou znaku *. Príklad:
 \begin{center}
 args = arg \{"," \text{ }arg\}\\
 args = arg ("," \text{ }arg)$^*$
 \end{center}
 
-\textbf{Spájanie} - Namiesto toho aby sa autor gramatiky spoliehal na postavenie výrazov vedľa seba, má možnosť spájať výrazy aj pomocou znaku čiarky.
+\textbf{Spájanie} -- Namiesto toho aby sa autor gramatiky spoliehal na postavenie výrazov vedľa seba, má možnosť spájať výrazy aj pomocou znaku čiarky.
 
 Každú gramatiku zapísanú cez EBNF je možné taktiež zpísať pomocou BNF, to ale vedie k omnoho obsiahlejšiemu množstvu definičných pravidiel. V nasledujúcich príkladoch sú znároznené 2 rôzne zápisy v EBNF gramatiky z kapitoly \ref{CFG}:
 \begin{center}
@@ -181,6 +177,23 @@ A = ("0")$^*$ "\#" \text{ (}"1")$^*$
 \end{tabular}
 \end{center}
 
+\subsection{Parsing Expression Grammar}
+\nomExpl{PEG}{Parsing Expression Grammar} poskytuje alternatívu na popisovanie strojovo orientovanej syntaxie, ktorý rieši problém nejednoznačnosti tým, že ju nepodporuje už od začiatku. Zápis PEG je veľmi podobný zápisu gramatiky pomocou EBNF. Taktiež priamo podporuje veci, ktoré sa bežne používajú, ako sú rozsahy znakov (triedy znakov). Má aj niektoré rozdiely, ktoré v skutočnosti nie sú pragmatické, ako napríklad použitie formálnejšieho symbolu šípky ($\leftarrow$) pre priradenie, namiesto bežnejšieho symbolu rovníc (=). 
+
+Problém nejednoznačnosti spočíva v možnosti sparsovať jeden vstupný reťazec viacerými spôsobmi. Ak by CFG parser spracovával takýto reťazec, mal by v takomto prípade problém. Nakoľko CFG spracváva možnosti pravidiel nedeterministicky, pri parsovaní nejednoznčného vstupu vráti chybu, pretože nevie ktorá sparsovaná možnosť je správna. Na druhú stranu pre PEG riadi výber možností pomocou \textit{prioritnej voľby}, a preto pri parsovaní nejednoznačného vstupu vždy použije prvú možnosť, ktorá je akceptovateľná \cite{ford2004parsing}. Nevýhoda tohto prístupu je v tom, že pri písaní PEG je potreba dbať na správne poradie, inak by mohli vzniknúť pravidlá, ktoré nikdy nebudú vyhovovať. V nasledujúcom príklade slovo \textit{doge} nebude nikdy vyhovovať, nakoľko slovo dog \textit{dog} je na prvom mieste a bude ihneď vybrané.
+
+\begin{center}
+word $\leftarrow$ 'dog' / 'doge'
+\end{center}
+
+\section{Parsovanie pomocou regulárnych výrazov}
+Regulárne výrazy (\ref{regexp}) poskytujú možnosť zápisu regulárnych jazykov, ktorých fungovanie je postavené na deterministických konečných automatoch (\ref{DFA}).
+
+O regulárných výrazoch sa často horoví, že by nemali byť použité na parsovanie. Nie vždy to ale je pravda, pretože je možné použiť regulárne výrazy na parsovanie jednoduchých vstupov. Niektorý programátori nepoznajú iné možnosti a snažia sa všetko parsovať s použitím regulárných výrazov aj keď by nemali. Výsledkom toho je séria regulárnych výrazov spojených v jeden, čím sa parsovanie môže jednoducho stať vysoko náchylným k chybám.
+
+Parsovanie pomocou regulárnych výrazov je naozaj možné, ale iba pre regulérne jazyky. Pokiaľ sa v jazyku, ktorý sa snažíme parsovať, objavia vnorené alebo rekurzívne elemety, nejedná sa už o regulérny jazyk, ale o jazyk \textit{bezkontextový} (\ref{CFG}). Parsovanie takéhoto jazyka pomocou regulárneho výrazu by spôsobilo degenerovanú slučku \cite{ford2004parsing}. 
+% Väčšina programovacích jazykov spadá pod bezkontextové jazyky, a preto nie je možné tieto jazyky parsovať regulérnymi výrazmi.
+
 \section{Štruktúra bezkontextových parserov}
 Syntaktickej analýze zpravidla predchádza \textit{lexikálna analýza}, pri ktorej sa vstupný reťazec rozdeľuje na postupnosť lexikálnych symbolov (lexémov). V programovacích jazykoch sa taktiež nazývajú \textbf{tokeny} a definujú identifikátory, literály (čísla, reťazce), kľúčové slová, operátory, oddeľovače a pod. Pre parser sú tokeny ďalej nedelteľné stabevbné jednotky, ktoré používa pri interpretácií vstupných dát. Porgram vykonávajúci túto úlohu sa nazýva štrukturálny analyzátor, no v programovaní sa častejšie narazí na výraz \textbf{lexer} alebo \textbf{tokenizer} bližšie popísaný v kapitole \ref{lexer}. 
 
@@ -189,7 +202,7 @@ V kontexte parsovania sa slovo parser môže odkazovať na program, ktorý vykon
 Parsre sú významnou súčasťov kompilátorov alebo interpretorov programovacích jazykov, no samozrejme môžu byť súčasťou aj rôznych typov programov. Čo sa týka parsovania programovacích jazykov, parser dokáže určiť iba syntakticú korektnosť parsovaného výrazu. Výstup parseru je ale základom pre zistanie sémantickej korektnosti.
 
 \subsection{Lexer}\label{lexer}
-Lexey zohrávajú dôležitú  rolu pri parsovaní, pretože transformujú počiatočný vstup na jednoduhšie spracovateľnú formu pre parser. Napísanie gramatiky pre lexer je zvyčajne jednodušie nakoľko nie je nutné riešit vymoženosti bezkotextového jazyka ako je napríklad opakovanie, rekurzia a podobne.
+Lexery zohrávajú dôležitú  rolu pri parsovaní, pretože transformujú počiatočný vstup na jednoduhšie spracovateľnú formu pre parser. Napísanie gramatiky pre lexer je zvyčajne jednodušie nakoľko nie je nutné riešit vymoženosti bezkotextového jazyka ako je napríklad opakovanie, rekurzia a podobne.
 
 Jedna z veľmi dôležitých úloh lexera je vysporiadanie sa z medzerami v parsovanom výraze. Vo väčšine prípadoch chceme, aby prázdne medzery boli lexerom odstránené. Ak by sa tak nestalo, znamenalo by to, že by sa s nimi musel vysporiadať samotný parser. To by znamenalo ich kontorlu pri každom jednom použitom tokene, čo by sa rýchlo stalo nepríjemným.
 
@@ -229,3 +242,38 @@ OCTEC = [0-9]+\\
 ipv4  = OCTET DOT OCTET DOT OCTET DOT OCTET
 \end{tabular}
 \end{center}
+
+\section{Typické problémy parsovania}
+Prí definovaní gramatiky pre parsre, existuje niekoľko typických problémov, s ktorými sa jednotlivé parsre musia vysporiadať. 
+
+\subsection{Chýbajúci token}
+Častým problémom v gramtikách sú chýbajúce resp. nedefinované tokeny. V niektorých gramatikách sa v rámci lexeru zadefinuje iba časť tokenov ako napríklad
+
+\begin{center}
+\begin{tabular}{p{0.3\textwidth}}
+\color{editorGray}{/* Lexer */}\\
+NAME = [a-zA-Z]+\\
+\color{editorGray}{/* Parser */}\\
+greeting = "Hello"{ NAME}
+\end{tabular}
+\end{center}
+
+Token "Hello"{ }nie je pre parser definovaný. Niektoré nástroje na parsovanie sa dokáu s týmto problémom vysporiadať tým, že si sami vygenerujú definíciu pre tieto token, čím zároveň ušetria užívateľovi trochu času \cite{tomassetti:parsing}.
+
+\subsection{Pravidlá s ľavou rekurziou}\label{left-recursion-rule}
+V rámci bezkontextových gramatík sa často využíva ľavá rekurzia na definovanie zľava asociatívnych operácií. Tento problém sa najčastejšie rieši v rámci Top Down parserov (viď kapitola \ref{parsing-alg-basics}) s rekurzívnym zostupom (viď kapitola \ref{recursive-descent}). 
+
+Pravidlá s ľavou rekurziou sú také pravidlá, ktoré začínajú s referenciu sami na seba, ako napríklad $A \rightarrow A\alpha$. Do toho problému spadá taktiež nepriama ľavá rekurzia, čo znamená že referencia na saméo seba sa objaví v rámci iného pravidla, ako napríklad:
+
+\begin{center}
+\begin{tabular}{p{0.15\textwidth}}
+$A \rightarrow B\alpha$\\
+$B \rightarrow A\beta$\\
+\end{tabular}
+\end{center}
+
+Predpokladajme, že sa snažím sparsovať pravidlo A na danom mieste vo vstupnom reťazci. Ak by sme na to použili Top Down parser, ktorý pracuje z ľava do prava, našou prvou podúlohou by bolo parsovat pravidlo A na tom istom mieste \cite{moore2000removing}. Takto sa okamžite dostávame do nekonečnej slučky. Rovnaký problém nastane aj s použitím gramatiky, ktorá obsahuje nepriamu ľavú rekurziu, kde sa do nekonečnej slučky dostaneme prechodom cez viac pravidiel.
+
+V teórii, obmedzenie na bezkontextové gramatiky bez ľavej rekurzie nepridáva žiadne obmedzenie na jazyk, korý sa snažíme popísať gramatikov. Existujú pravidlá pomocou ktorých sa dá ľavá rekurzia odstránit. V zásade každá bezkontextová gramatika obsahujúca ľavú rekurziu vie byť transformovaná na gramatiku bez ľavej rekurzie \cite{moore2000removing}.
+\textbf{Note: moznost pridat priklad odstranovania lavej rekurzie}
+% https://tomassetti.me/guide-parsing-algorithms-terminology/#typicalGrammarIssues
