@@ -71,7 +71,7 @@ Nasledujúca tabuľka obsahuje súhrn hlavných vlastností existujúcich algori
 \label{my-label}
 \end{longtable}
 
-Väčšina parsovacích nástrojov pre bezkontextové gramatiky, ktoré podporujú Javu, používa parsovacie algoritmy typu LL a LR. Z tohto dôvodu sa ďalej budeme venovať práve týmto typom algoritmov.
+Väčšina parsovacích nástrojov pre bezkontextové gramatiky, ktoré podporujú Javu\footnote{\url{https://en.wikipedia.org/wiki/Comparison_of_parser_generators}}, používa parsovacie algoritmy typu LL a LR. Z tohto dôvodu sa ďalej budeme venovať práve týmto typom algoritmov.
 
 \subsection{Rekurzívny zostup}\label{recursive-descent}
 Metóda rekurzívneho zostupu je technika parsovania, ktorá spočía vo vytvorení samostatných procedúr na analýzu každého neterminálového symbolu. \cite{CVUT:program_language} Označenie poradia, v ktorom sa neterminálové prvky nachadzajúce sa na pravej strane použijú na získanie neterminálového symbolu na pravej strane pravidla sa volá \textit{odvodenie} alebo \textit{derivácia}. Existujú dve možnosti: \textbf{ľavá derivácia} a \textbf{pravá derivácia}. Prvá z nich znamená, že pravidlo sa uplatňuje zľava doprava, začiaľ čo druhá presne naopak. 

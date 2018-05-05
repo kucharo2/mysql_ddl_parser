@@ -149,9 +149,10 @@ Všetky netreminály v BNF sa zapisujú do špicatých zátvoriek \textit{< >}, 
 \subsection{Rozšírená Backus-Naur Form notácia}\label{EBNF}
 Pre zjednodušenie zápisu gramatiky, a aby bolo možné jednoduhšie definovať určité typy pravidel vznikla kolekcia rozširení k Backus-Naur Form notácii (\nom{EBNF}{Extended Backus-Naur Form}), ktorá bola štandardizovaná ako ISO/IEC 14997\cite{ISO14977}. Terminály môžu byť vyjadrené konkrétnym postupom znakov v uvodzovkách, alebo pomocou triedy literálov, ktorú je možné zapísať pomocou regulárneho výrazu. Priradzovací znak pravidla je zmenený z ::= na jednoduché = a vynecáhva sa zápis špicatých zátvoriek okolo neterminálov. Tieto malé syntaktické zmeny nie sú tak dôležité ako dodatočné operácie EBNF, ktoré sa môžu použiť vo výraze.
 
-\textbf{Nepovinosť} -- Použitím hranatých zátvoriek okolo výrazu \textit{[výraz]} sa indikuje možosť použitia tohto výrazu v sekvencii. Jednoduhšie povedané, výraz môže, ale nemusí byť použitý vo výsldnej sekvencii. Príklad: 
+\textbf{Nepovinosť} -- Použitím hranatých zátvoriek okolo výrazu \textit{[výraz]} sa indikuje možosť použitia tohto výrazu v sekvencii. Jednoduhšie povedané, výraz môže, ale nemusí byť použitý vo výsldnej sekvencii. Toto pravidlo je taktiež možné zapísať pomocou znaku ?. Príklad: 
 \begin{center}
-term = ["\text{-}"] factor
+term = ["\text{-}"] factor\\
+term = "\text{-}"? factor
 \end{center}
 
 \textbf{Zlučovanie} -- Aby bolo možné identifikovať prioritu sekvencie symbolov, EBNF používa klasické zátvorky, čím jednoznačne definuje poradie výrazov. V príklade je zapísaná gramatika, ktorá príjmá matematické sčítanie a odčítanie:
