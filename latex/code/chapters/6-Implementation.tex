@@ -3,29 +3,29 @@ Na základe dôvodov popisovaných v poslednej kapitole, som sa na implementáci
 
 \section{Základy ANTLR v4}
 
-Štvrtá verzia ANTLR má niektoré dôležité nové možnosti, ktoré znižujú učiacu sa krivku a umožnuje vytvárať gramatiky a jazykové aplikáciie oveľa jednoduhšie. Najdôležitejšou výhodou je, že ANTLR v4 akceptuje každú gramatiku, ktorú mu poskytnete (s výnimkou týkajúcou sa nepriamej ľavej rekurzie). ANTLR prekladá vašu gramatiku do spustiteľného, ľudsky čitateľného analytického kódu, do ktorého keď zadáte platný vstupný reťazec, parser vždy rozpozná vstup správne nezávisle na komplikovanosti gramtiky.
+Štvrtá verzia ANTLR má niektoré dôležité nové možnosti, ktoré znižujú učiacu sa krivku a umožnuje vytvárať gramatiky a jazykové aplikáciie oveľa jednoduhšie. Najdôležitejšou výhodou je, že ANTLR v4 akceptuje každú gramatiku, ktorú mu poskytnete (s výnimkou týkajúcou sa nepriamej ľavej rekurzie). ANTLR prekladá vašu gramatiku do spustiteľného, ľudsky čitateľného analytického kódu, do ktorého keď zadáte platný vstupný reťazec, parser vždy rozpozná vstup správne, nezávisle na komplikovanosti gramtiky.
 
 V rámci tejto sekcie sú popísané základné informácie potrebné na pochopenie toho, ako s ANTLR pracovať. Na získanie podrobnejších alebo viac detailných informácií doporučujem knihu \textit{The Definitive ANTLR4 reference}\cite{definitiveANTLR} napísanú autorom ANTLR nástroja.
 
 \subsection{Nastavenie ANTLR}
 ANTLR sa skladá z dvoch častí: Nástroja na generovanie lexeru a parseru z gramatiky a knižnice potrebnej na beh parseru.
 
-Nástroj na generovanie je rovnaký nezávisle na výstupnom jazyku generovaného lexeru a parseru, a pre samotný beh parseru nie je potrebný. Využijú ho užívatelia, ktorý vytvárajú, alebo upravujú gramatiku. Je to vlastne program napísaný v programovacom jazyku Java, a preto je nutné na prácu s ním mať nainstalovanú aspoň Javu 1.7. Inštalácia ANTLR spočíva v stiahnutí napsledy zverejneného java archívu\footnote{\url{http://www.antlr.org/download.html}}, alebo jeho vybuildením zo zdrojových kódov dostupných v GitHub repositáru\footnote{\url{https://github.com/antlr/antlr4}}. 
+Nástroj na generovanie je rovnaký, nezávisle na výstupnom jazyku generovaného lexeru a parseru, a pre samotný beh parseru nie je potrebný. Využijú ho užívatelia, ktorí vytvárajú, alebo upravujú gramatiku. Je to vlastne program napísaný v programovacom jazyku Java, a preto je nutné na prácu s ním mať nainštalovanú aspoň Javu 1.7. Inštalácia ANTLR spočíva v stiahnutí naposledy zverejneného java archívu\footnote{\url{http://www.antlr.org/download.html}}, alebo jeho vybuildením zo zdrojových kódov dostupných v GitHub repositáru\footnote{\url{https://github.com/antlr/antlr4}}. 
 
 Kroky nutné na nainštalovanie ANTLR nástroja:
 \begin{enumerate}
-\item Nakopírovať stiahnutný nástroj na miesto kde sú uchovávané java knižnice tretích strán.
+\item Nakopírovať stiahnutný nástroj na miesto, kde sú uchovávané java knižnice tretích strán.
 \item Pridať cestu k nástroju do systemových premenných.
-\item Na zjednodušenie používania vytvriť spúštací script a vytvoriť naň alias.
+\item Na zjednodušenie používania vytvoriť spúštací script a vytvoriť naň alias.
 \end{enumerate}
-Konkrétne príklady inštalačných krokoj je možné si pozrieť v prílohách \ref{install:windows} pre Windows a \ref{install:linux} pre Linux a Mac OS.
+Konkrétne príklady inštalačných krokov je možné si pozrieť v prílohách \ref{install:windows} pre Windows a \ref{install:linux} pre Linux a Mac OS.
 
-Vstupom pre ANTLR nástroj je súbor s príponou \textit{.g4}, ktorý obsahuje gramatiku jazyka(viď kapitola \ref{antlr_grammar}), pre ktorý bude analyzátor vygenerovaný. príkaz na vygenerovanie lexeru a prseru z definovanej gramatky vyzerá následovne.
+Vstupom pre ANTLR nástroj je súbor s príponou \textit{.g4}, ktorý obsahuje gramatiku jazyka (viď kapitola \ref{antlr_grammar}), pre ktorý bude analyzátor vygenerovaný. príkaz na vygenerovanie lexeru a prseru z definovanej gramatky vyzerá následovne.
 \begin{center}
 \textit{antlr4 <options> <grammar-file-g4>}
 \end{center}
 
-Prvým dôležitým nastavením pri generovaní je možnosť zvoliť si cieľový jazyk vygenerovaného parseru. Prednastavným výstupným jazykom je Java, no ANTLR podpouje aj Python, JavaScript a C\#. Na prechádzanie sparsovaného stromu ANTLR v základe generuje listener objekt, ktorý poslúcha na události vznikajúce pri príchode aj pri odchode z uzlu stromu. Ak užívateľ preferuje použitie visitor paternu pri prechádzaní stromom, je možné ANTLR nástroju nastaviť generovanie visitor objektov.
+Prvým dôležitým nastavením pri generovaní je možnosť zvoliť si cieľový jazyk vygenerovaného parseru. Prednastaveným výstupným jazykom je Java, no ANTLR podporuje aj Python, JavaScript a C\#. Na prechádzanie sparsovaného stromu ANTLR v základe generuje objekt poslucháča, ktorý reaguje na události vznikajúce pri príchode aj pri odchode z uzlu stromu. Ak užívateľ preferuje použitie visitor paternu pri prechádzaní stromom, je možné ANTLR nástroju nastaviť generovanie visitor objektov.
 
 \subsubsection{Maven}
 Pre projekty, ktoré využívajú Maven\footnote{\url{https://maven.apache.org/}} na riadenie a správu buildov aplikácii, je možné túto správu využiť aj pre nastavenie ANTLR.
@@ -62,7 +62,7 @@ Ako druhý krok, je nutné nastaviť maven plugin, pomocou ktorého bude ANTLR g
 \end{lstlisting}
 \end{minipage}
 
-Na definíciu cieľového balíčka, v ktorom sa budú nachádzať vygenerované súbory, \mbox{ANTLR} použije štruktúru v zdrojovom priečinku. Napríklad ak uvažujeme základný zdrojový priečinok \textit{src/main/antlr4} a cesta k súboru z gramatikou sa bude napríklad:
+Na definíciu cieľového balíčka, v ktorom sa budú nachádzať vygenerované súbory, použije \mbox{ANTLR}  štruktúru v zdrojovom priečinku. Ak uvažujeme základný zdrojový priečinok \textit{src/main/antlr4} a cesta k súboru z gramatikou bude napríklad:
 
 \begin{center}
 \textit{src/main/antlr4/mysql/grammar/MySqlParser.g4}
@@ -73,10 +73,10 @@ Vygenerovaný parser sa bude v tomto prípade náchádzať v balíčku \textbf{m
 \subsection{ANTLR Gramatika}\label{antlr_grammar}
 Písanie gramatiky je podobné písaniu softwaru s výnimkou toho, že namiesto funkcií a procedúr sa používajú pravidlá. ANTLR používa zápis gramatiky EBNF notáciu, ktorá je zároveň používana v dokumentáciach programovacích jazykov na popis ich syntaxie. Vďaka nej je možné pri zápise pravidiel používať operácie ako napríklad zlučovanie, opakovanie a nepovinnosť, ktoré sú popísané v kapitole \ref{EBNF}.
 
-Aby bol ANTLR schopný rozpoznať pravidlá pre lexer a parser, je zavedená konvencia na zápis týchto pravidiel. Tá kontroluje, či prvé písmeno pravidla je veľké alebo malé. Síce sa toto pravidlo vzťahuje iba na prvé písmeno, je zvykom definovať názov pravidiel pre lexer iba pomocou veľkých písmen. 
+Aby bol ANTLR schopný rozpoznať pravidlá pre lexer a parser, je zavedená konvencia na zápis týchto pravidiel. Tá kontroluje, či prvé písmeno pravidla je veľké alebo malé. Síce sa toto pravidlo vzťahuje iba na prvé písmeno, ale aj tak je zvykom definovať názov pravidiel pre lexer iba pomocou veľkých písmen. 
 
 \subsubsection{Pravidlá pre lexer}
-Je dôležité mať na pamäti, že lexerove pravidlá sú analyzované v poradí, v akom sa objavujú, a môžu byť nejednoznačné. Typickým príkladom v programovacom jazyku je napríklad to, že názov premennej môže byť akékoľvek slovo s výnimkou na kľúčové slová. Poradie pravidiel rieši nejednoznačnosť tým, že použije prvú zhodu, a preto sú tokeny označujúce kľúčové slová definované ako prvé, zatiaľ čo identifikačné znaky sú uvedené ako posledné. Na lepšie priblíženie tvorby gramatiky pre lexer sa pozrime na príklad:
+Je dôležité mať na pamäti, že lexerove pravidlá sú analyzované v poradí, v akom sa objavujú, a môžu byť nejednoznačné. Typickým príkladom v programovacom jazyku je napríklad to, že názov premennej môže byť akékoľvek slovo s výnimkou kľúčových slov. Poradie pravidiel rieši nejednoznačnosť tým, že použije prvú zhodu, a preto sú tokeny označujúce kľúčové slová definované ako prvé, zatiaľ čo identifikačné znaky sú uvedené ako posledné. Na lepšie priblíženie tvorby gramatiky pre lexer sa pozrime na príklad:
 
 \begin{lstlisting}[basicstyle=\small, keepspaces=true]
 fragment NUMBER           : [0-9]+ ;
@@ -90,7 +90,7 @@ Tento príklad zobrazuje tri typy pravidiel, ktoré sa používajú na vytvoreni
 DECIMAL_NUMBER : NUMBER (',' NUMBER)? ;
 \end{lstlisting}
 
-Najviac zaujímavým pravidlom je pravidlo definujúce medzery (\textit{WHITESPACE}). Zaujímave je z dôvodu, že predstavuje možnosť ako ANTLR-u indikovať, že má niečo ignorovať. Vďaka tomuto pravidlo sa náramne zjednoduší piísanie pravidiel pre parser. Ak by takého pravidlo neexistovalo, musel by to autor gramatiky zahrnúť medzi každú podskupinu pravidiel parseru. ako napríklad:
+Najviac zaujímavým pravidlom je pravidlo definujúce medzery (\textit{WHITESPACE}). Zaujímavé je z dôvodu, že predstavuje možnosť ako ANTLR-u indikovať, že má niečo ignorovať. Vďaka tomuto pravidlu sa náramne zjednoduší písanie pravidiel pre parser. Ak by takého pravidlo neexistovalo, musel by to autor gramatiky zahrnúť medzi každú podskupinu pravidiel parseru. ako napríklad:
 \begin{lstlisting}[basicstyle=\small]
 sum  : WHITESPACE* NUMBER WHITESPACE* '+' WHITESPACE* NUMBER;
 \end{lstlisting}
@@ -98,25 +98,25 @@ sum  : WHITESPACE* NUMBER WHITESPACE* '+' WHITESPACE* NUMBER;
 Tento princíp sa typicky aplikuje aj na komentáre. Tie sa taktiež môžu objaviť kdekoľvek a väčšinou autora pri parsovaní nezujímajú, takže sa jednoducho ignorujú.
 
 \subsubsection{Dostupné gramatiky}
-Kľučovou výhodou ANTLR v4 je dostupnosť obrovského množstva vytvorených gramatík od autorov z celého sveta, ktoré sú združené v rámci ANTLR GitHub repozitáru\footnote{\url{https://github.com/antlr/grammars-v4}}. Pre tieto gramatiky neexistuje žiadna globálna licencia. Každá z gramaík má svoju vlastnú licenciu. Súčasťou tejto kolekcie je aj gramatika pre MySQL, ktorá je vytvorená na základe dokumentácie pre MySQL verzie 5.6 a 5.7, čo presne vyhovuje potrebám projektu Debezium. MySQL gramatika je vydaná pod licenciou MIT\footnote{MIT licencia je jedna z najmenej reštriktívnych open source licencií. Ktokoľvek môže takto licencovaný program bez obmedzenie používať a šíriť, pokiaľ z programu neodstráni kopiu licencie a meno autora.}.
+Kľučovou výhodou ANTLR v4 je dostupnosť obrovského množstva vytvorených gramatík od autorov z celého sveta, ktoré sú združené v rámci ANTLR GitHub repozitáru\footnote{\url{https://github.com/antlr/grammars-v4}}. Pre tieto gramatiky neexistuje žiadna globálna licencia. Každá z gramaík má svoju vlastnú licenciu. Súčasťou tejto kolekcie je aj gramatika pre MySQL, ktorá je vytvorená na základe dokumentácie pre MySQL verzie 5.6 a 5.7, čo presne vyhovuje potrebám projektu Debezium. MySQL gramatika je vydaná pod licenciou MIT\footnote{MIT licencia je jedna z najmenej reštriktívnych open source licencií. Ktokoľvek môže takto licencovaný program bez obmedzenia používať a šíriť, pokiaľ z programu neodstráni kopiu licencie a meno autora.}.
 
-\subsection{Ukážková implementácia}
+\subsection{Ukážková implementácia}\label{basic_implementation}
 % https://gist.github.com/mattmcd/5425206
-Ako ukážkovú implementáciu použijeme príklad na parsovanie pozdravu. Prvým krokom implementácie je definícia gramatiky (viď ukážka \ref{code:hello_grammar}). V tomto prípade o je veľmi jednoduchá gramatika o jednom pravidle \textit{greeting}, ktoré na prvom mieste očakáva slovo \textit{hello} následované akýmkoľvek reťazcom skladajúcim sa z malých písmen abecedy.
+Ako ukážkovú implementáciu použijeme príklad na parsovanie pozdravu. Prvým krokom implementácie je definícia gramatiky (viď ukážka \ref{code:hello_grammar}). V tomto prípade to je veľmi jednoduchá gramatika o jednom pravidle \textit{greeting}, ktoré na prvom mieste očakáva slovo \textit{hello} následované akýmkoľvek reťazcom skladajúcim sa z malých písmen abecedy.
 
 \lstinputlisting[caption=Ukážková gramatika Hello, 
             label=code:hello_grammar,
             keepspaces=true]
             {code/6/hello_grammar.tex}
 
-Z tejto gramatiky ANTLR vygeneruje \inlinecode{HelloParser}, \inlinecode{HelloLexer}, rozhranie \inlinecode{HelloListener} a jeho základnú (prázdnu) implementáciu \inlinecode{HelloBaseListener}. Použitím je možné počúvať príchod a odchod na pravidlá gramatiky. Implementujeme si vlastný \inlinecode{HelloListenerCustom} pomocou ktorého budeme reagovať na nami zvolené události. V tomto prípade to je výpis na systemový výstup pri príchode aj odchode na pravidlo \textit{greeting} (viď ukážka \ref{code:hello_listener}).
+Z tejto gramatiky ANTLR vygeneruje \inlinecode{HelloParser}, \inlinecode{HelloLexer}, rozhranie \inlinecode{HelloListener} a jeho základnú (prázdnu) implementáciu \inlinecode{HelloBaseListener}. Jeho použitím je možné poslúchať události vzniknuté pri príchode a odchode z pravidiel gramatiky. Implementujeme si vlastný \inlinecode{HelloListenerCustom}, pomocou ktorého budeme reagovať na nami zvolené události. V tomto prípade to je výpis na systemový výstup pri príchode aj odchode na pravidlo \textit{greeting} (viď ukážka \ref{code:hello_listener}).
 
 \lstinputlisting[language=Java2,
 			caption=Ukážková implementácia HelloListener.java, 
             label=code:hello_listener]
             {code/6/HelloListener.java}
 
-Posledným krokom je implementovať Main aplikáciu, ktorá inicializuje \inlinecode{HelloLexer}, \inlinecode{HelloParser} a spustí samotné parsovanie (viď ukážka \ref{code:hello_main}). \inlinecode{HelloLexer} as incializuje pomocou prúdu znakov reprezentovaných \inlinecode{CharStream} objektom. Použitím lexeru si vytvoríme prúd tokenov \inlinecode{CommonTokenStream}, ktorým inicializujeme \inlinecode{HelloParser}. Zavolaním príkazu na riadku 10 ukážky \ref{code:hello_main} spustíme proces parsovania, ktorého vstupom je sparsovaný strom. osledným krokom je prechod stromu pomocou \inlinecode{ParseTreeWalker} triedy, ktorej prradíme nami vytvorený \inlinecode{HelloListenerCustom}. Náš \inlinecode{HelloListenerCustom} je možné priradiť aj parseru, vďaka čomu by sme mohli odchytávat události už počas toho, ako sa vygenerovaný parser snaží vytvoriť sparsovaný strom. V takomto prípade je ale nutné počítat zo situáciami, že aktuálne sparovaný kontext nie je úplny a taktiež nie je zaručené, že pravidlo bude obsiahnuté vo výslednom sparsovanom strome. 
+Posledným krokom je implementovať aplikáciu, ktorá inicializuje \inlinecode{HelloLexer}, \inlinecode{HelloParser} a spustí samotné parsovanie (viď ukážka \ref{code:hello_main}). \inlinecode{HelloLexer} sa incializuje pomocou prúdu znakov reprezentovaných \inlinecode{CharStream} objektom. Použitím lexeru si vytvoríme prúd tokenov \inlinecode{CommonTokenStream}, ktorým inicializujeme \inlinecode{HelloParser}. Zavolaním príkazu na riadku 10 ukážky \ref{code:hello_main} spustíme proces parsovania, ktorého vstupom je sparsovaný strom. Posledným krokom je prechod stromu pomocou \inlinecode{ParseTreeWalker} triedy, ktorej priradíme nami vytvorený \inlinecode{HelloListenerCustom}. Náš \inlinecode{HelloListenerCustom} je možné priradiť aj parseru, vďaka čomu by sme mohli odchytávat události už počas toho, ako sa vygenerovaný parser snaží vytvoriť sparsovaný strom. V takomto prípade je ale nutné počítat zo situáciami, že aktuálne sparovaný kontext nie je úplny a taktiež nie je zaručené, že pravidlo bude obsiahnuté vo výslednom sparsovanom strome. 
 
 \begin{minipage}{\linewidth}
 \lstinputlisting[language=Java2,
@@ -184,5 +184,22 @@ Pri každej zmene, ktorá nastane nad databázovým modelom uloženým v pamäti
 \end{figure}
 
 \subsection{ANTLR DDL parser design}
-Úpravou designu aktuálnej implementácie, ktorej výsledok je možné vidieť na obrázku \ref{fig:class_diagram_new} nám zabezpečí možnosť jedoduhšieho návrhu pre DDL parsre generované pomocou \mbox{ANTLR}. Z celého návrhu je nutné nahradiť triedy \inlinecode{LegacyDdlParser} a \inlinecode{MySqlDdlParser} za novú implementáciu. Zachovaním myšlienky na prepoužitie bude opäť návrh obsahovať triedu zo základnou implementáciou ANTLR parserov a konkrétnu implementáciu pre MySQL DBMS.
+Úpravou designu aktuálnej implementácie, ktorej výsledok je možné vidieť na obrázku \ref{fig:class_diagram_new} nám zabezpečí možnosť jednoduhšieho návrhu pre DDL parsre generované pomocou \mbox{ANTLR}. Z celého návrhu je nutné nahradiť triedy \inlinecode{LegacyDdlParser} a \inlinecode{MySqlDdlParser} za novú implementáciu. Zachovaním myšlienky na prepoužitie bude opäť návrh obsahovať triedu zo základnou implementáciou ANTLR parserov a konkrétnu implementáciu pre MySQL DBMS.
 
+Pri návrhu je nutné počítať aj z generovaním gramatík, čo pre modul, ktorý bude definície gramatík obsahovať sposobí, že jeho build bude trvať dlhšie. Práve z dôvodu aby sa vyvojárom ušetril čas buildu pri implementovaní špecifických parserov, bude základná implementácia spolu z definíciou gramatík a vygenerovanými triedami separovaná do samostatného modulu, ktorý nazve \textbf{debezium-ddl-parser}. Samotná implementácia parseru pre MySQL, už ale bude súčasťou modulu \textit{debezium-connector-mysql}. Takýto návrh spôsobí to, že pri implementácii MySQL parseru, bude nutné buildiť modul \textit{debezium-ddl-parser} iba raz aby sa vygenerovali triedy z gramatiky a následne stačí buildiť iba modul v ktorom sa nachádza konkrétna implementácia, v rámci ktorého sa uz nič ohľadom ANTLR parseru generovať nebude.
+
+Ako je vidieť z ukážkovej implementácie v kapitole \ref{basic_implementation}, ANTLR DDL parser sa skladá z inicializácie lexeru, parseru a priradení poslucháča, ktorý bude regovať na sparsovaný strom a vykonávať náležité akcie nad databázovým modelom, ktorý si udržuje Debezium. 
+Kedže parsovací strom môže pozostávať z viacerých SQL dotazov, je potrebné počítať s tým, že v rámci jeho prechodu a snahe vykonať úpravy nad daatabázovým modelom môže nastať viacero chýb. Tieto chyby bude nutné lokálne ukladať a spracovať ich až po prejdení celého stromu. Kvôli tomu bude od konkrétnych poslúchačov vyžadované aby implementovali metódu, ktorá vráti zoznam chýb, ktoré nastali počas prechodu stromu. To sa zabezpečí použitím rozhrania \inlinecode{AntlrDdlParserListener}. 
+
+Inicializácia lexeru a parseru je závislá na konkrétnych triedach vygenervoaných ANTLR nástrojom, ktoré majú generovaný názov podľa názvu gramatiky. To indikuje, že novú instanciu triedy musí sprostredkovávať implementácia konkrétneho parseru. Samotný postup inicializácie sa ale dá generovať a na získanie nových instancií sa môže použiť abstraktná metóda, ktorej implementácia bude súčasťou implementácia konkrétneho parseru. Ronaký poblém sa aplikuje aj na spustenie parsovania a priradenie implementácie \inlinecode{AntlrDdlParserListener}. \mbox{O inicializáciu} sa bude starať trieda \inlinecode{AntlrDdlParser}.
+
+Výsledok tohto návrhu je možné vidieť na obrázku \ref{fig:class_diagram_antlr}.
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=15cm]{figures/antlr_design.pdf}
+\caption{Diagram tried MySQL ANLTR DDL parseru}
+\label{fig:class_diagram_antlr}
+\end{center}
+\end{figure}
+
+\section{Implementácia}

@@ -36,7 +36,7 @@ public class Main {
             for (String query : queries) {
 //                System.out.println("\nParsing: " + query);
                 try {
-                    MySqlDdlLexer mySqlDdlLexer = new MySqlDdlLexer(CharStreams.fromString(query));
+                        MySqlDdlLexer mySqlDdlLexer = new MySqlDdlLexer(CharStreams.fromString(query));
                     MySqlDdlParser mySqlDdlParser = new MySqlDdlParser(new CommonTokenStream(mySqlDdlLexer));
 //                    mySqlDdlParser.addErrorListener(new BaseErrorListener() {
 //                        @Override
