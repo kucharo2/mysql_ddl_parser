@@ -34,7 +34,7 @@ Tento strom môže byť vygenerovaný oboma spomenutými metódami. Rozdiel bude
   \end{minipage}
 \end{figure}
 
-Top down parsre sú jednoduhšie na poskladanie reps. implementáciu, no bottom up parsre boli silnejšie. Aktuálne je situácia vyváženejšia a to hlavne vďaka pokroku v stratégiách parsovania top down metódou. 
+\textit{Top down} parsre sú jednoduhšie na poskladanie resp. implementáciu. Hoci sú \textit{Bottom up} parsere bežne považované za "výkonnejšie"{ }ako \textit{Top down} parsre, ich trieda jazykov ktorú dokážu rozoznať je rovnaká\cite{aho1972theory}. Tento výraz sa skôr vzťahuje k väčšej flexibilite v písaní gramatiky, kde oproti \textit{Top down} parserom nie je nutné dbať na pravidlá z ľavou rekurziou (viď kapitola \ref{ll_grammar}). Aktuálne je situácia vyváženejšia a to hlavne vďaka pokroku v stratégiách parsovania \textit{Top down} metódou. 
 
 Nasledujúca tabuľka obsahuje súhrn hlavných vlastností existujúcich algoritmov a ich použitie\cite{tomassetti:parsing}.
 
@@ -71,7 +71,7 @@ Nasledujúca tabuľka obsahuje súhrn hlavných vlastností existujúcich algori
 \label{my-label}
 \end{longtable}
 
-Väčšina parsovacích nástrojov pre bezkontextové gramatiky, ktoré podporujú Javu\footnote{\url{https://en.wikipedia.org/wiki/Comparison_of_parser_generators}}, používa parsovacie algoritmy typu LL a LR. Z tohto dôvodu sa ďalej budeme venovať práve týmto typom algoritmov.
+Väčšina parsovacích nástrojov pre bezkontextové gramatiky, ktoré sú schopné generovať parsre v programovacom jazyku Java\footnote{\url{https://en.wikipedia.org/wiki/Comparison_of_parser_generators}}, používa parsovacie algoritmy typu LL a LR. Z tohto dôvodu sa ďalej budeme venovať práve týmto typom algoritmov.
 
 \subsection{Rekurzívny zostup}\label{recursive-descent}
 Metóda rekurzívneho zostupu je technika parsovania, ktorá spočía vo vytvorení samostatných procedúr na analýzu každého neterminálového symbolu. \cite{CVUT:program_language} Označenie poradia, v ktorom sa neterminálové prvky nachadzajúce sa na pravej strane použijú na získanie neterminálového symbolu na pravej strane pravidla sa volá \textit{odvodenie} alebo \textit{derivácia}. Existujú dve možnosti: \textbf{ľavá derivácia} a \textbf{pravá derivácia}. Prvá z nich znamená, že pravidlo sa uplatňuje zľava doprava, začiaľ čo druhá presne naopak. 
@@ -107,7 +107,7 @@ Presná definícia LL gramatiy, sa ale vzťahuje ku počtu lookahead tokenov pot
 \item \textbf{LL(*)} algoritmus, ktorý môže použiť neobmedzené množstvo lookahead tokenov. Teoretická asymtotická zložitosť tohto algoritmu je $O(n^2)$, no v praxi väčšinou kontrolujú jeden až dva lookahead tokeny \cite{LL}.
 \end{itemize}
 
-\subsection{LL gramatika}
+\subsection{LL gramatika}\label{ll_grammar}
 LL gramatiky sú často používané práve kvôli veľkej obľube LL parserov aj napriek závažnej nevýhode. LL gramatiky \textbf{nepodporujú ľavú rekurziu}, čo znamená, že gramatiky, ktoré ju obsahujú, musia byť upravené do ekvivaletnej podoby bez ľavej rekurzie aby mohli byť parsované pomocou LL parserov.
 
 Tento problém má za následok miernu stratu produktivity a výkonu \cite{tomassetti:parsing}. Výkonu z toho dôvodu, že pokiaľ gramatike z ľavou rekurziou mohol stačit jeden lookahead token, u transformovanej gramatiky sa tento počet môže navýšiť na dva až tri tokeny. Poblém produktivity spočíva v tom, že autor gramatiky musí písať gramatiku špciálnym spôsobom, čo vyžaduje viac času. Tieto problémy bohužial jemne podkopávajú silu algoritmu.
@@ -118,7 +118,7 @@ Na vyspooriadanie sa s problémom ľavej rekurzie existuje ešte druhá možnos�
 NOTE: ak je nutné, príadne ak bude treba nahrabat stray môžem pridať
 
 \section{LR parser}\label{LR}
-Algoritmy postavené na \nom{LR}{Left-to-right read of the input, Rightmost derivation} parsovaní sú hlavným dôvodom úspechu parsovania pomocou \textit{Bottom Up} metódy. Aj napriek tomu, že sú schopnejšie ako tradičné LL(1) gramatiky, ich popularita je bohužial nízka a to najmä z dôvodu, že ich vytvorenie bolo v minulosti veľmi náročné \cite{tomassetti:parsing}. Názov LR vychádza z anglických názvov použitých techník (\textbf{L}eft-to-right read of the input, \textbf{R}ightmost derivation).
+Algoritmy postavené na \nom{LR}{Left-to-right read of the input, Rightmost derivation} parsovaní sú hlavným dôvodom úspechu parsovania pomocou \textit{Bottom Up} metódy. Aj napriek tomu, že písanie LR gramatík prináša väčšiu flexibilitu oproti tradičným LL(1) gramatikám, ich popularita je bohužial nízka a to najmä z dôvodu, že konštrukcia LR parserov bola v minulosti veľmi náročná \cite{tomassetti:parsing}. Názov LR vychádza z anglických názvov použitých techník (\textbf{L}eft-to-right read of the input, \textbf{R}ightmost derivation).
 
 LR parsre spadajú do kategórie tzv. \textit{shift-reduce} parserov, ktoré pracujú v dvoch krokoch:
 \begin{itemize}
