@@ -1,94 +1,94 @@
 \chapter{Aktuálne riešenie MySQL konektoru}
-Projekt Debezium sa zkladá z viacerých častí. Hlavnou časťou je modul systému, ktorý je spoločný pre všetky typy konektorov podporovaných Debeziom. Tento modul zaobstaráva základnú funkcionalitu spojenú s CDC, ktorú tento systém podporuje. Definuje model sledovaných dát, na základe ktorých si systém udržuje aktuálne schémata tabuliek a ich dátový stav v pamäti. Jedným z týchto podporovaných konektorov je aj konektor pre MySQL databázu \ref{debezium:mysql_connector}.
+Projekt Debezium sa skladá z viacerých častí. Hlavnou časťou je modul systému, ktorý je spoločný pre všetky typy konektorov podporovaných Debeziom. Tento modul zaobstaráva základnú funkcionalitu spojenú s CDC, ktorú tento systém podporuje. Definuje model sledovaných dát, na základe ktorých si systém udržuje aktuálne schéma tabuliek a ich dátový stav v pamäti. Jedným z týchto podporovaných konektorov je aj konektor pre MySQL databázu \ref{debezium:mysql_connector}.
 
 \section{MySQL konektor}\label{debezium:mysql_connector}
-Minimálnou podporovanou verziou MySQL je aktálne verzia 5.6. MySQL konektor Debezia dokáže sledovať zmeny v databázy na úrovni jednotlivých riadkov v tabuľkách pomocou čítania databázového binlogu (\ref{mysql:binlog}). Pri prvom pripojení na MySQL server si konetor vytvorí aktuálny obraz všekých tabuliek (\ref{debezium:conistent_snapshot}) a následne sleduje všetky komitnuté zmeny, na základe ktorých vytvára jednotlivé \textit{insert}, \textit{update} a \textit{delete} eventy. Pre každú tabuľku je vytvorený separátny topik v Kafke v ktorom sa ukladajú eventy spojené z danou tabuľkou. Týmto spôsobom je zabezpečený štart s konzistentným obrazom všetkých dát.
+Minimálnou podporovanou verziou MySQL je aktuálne verzia 5.6. MySQL konektor Debezia dokáže sledovať zmeny v databázy na úrovni jednotlivých riadkov v tabuľkách pomocou čítania databázového binlogu (\ref{mysql:binlog}). Pri prvom pripojení na MySQL server si konektor vytvorí aktuálny obraz všetkých tabuliek (\ref{debezium:conistent_snapshot}) a následne sleduje všetky komitnuté zmeny, na základe ktorých vytvára jednotlivé \textit{insert}, \textit{update} a \textit{delete} eventy. Pre každú tabuľku je vytvorený separátny topik v Kafke v ktorom sa ukladajú eventy spojené z danou tabuľkou. Týmto spôsobom je zabezpečený štart s konzistentným obrazom všetkých dát.
 
-Konektor je taktiež veľmi tolerantný vočí chybám. Zároveň s čítaním událostí z binlogu si konektor ukladá ich pozíciu. Ak by nastala akákolvek situácia pri ktorej by konektor prestal pracovať a bol by nutný jeho reštart, tak jednoducho začne čítanie binlogu na pozícii na ktorej skončil pred pádom. Konektor sa bude rovnko správať aj keby chyba a jeho pád nastali počas prvotného vytvárania aktuálneho obrazu.
+Konektor je taktiež veľmi tolerantný voči chybám. Zároveň s čítaním udalostí z binlogu si konektor ukladá ich pozíciu. Ak by nastala akákoľvek situácia pri ktorej by konektor prestal pracovať a bol by nutný jeho reštart, tak jednoducho začne čítanie binlogu na pozícii na ktorej skončil pred pádom. Konektor sa bude rovnako správať aj keby chyba a jeho pád nastali počas prvotného vytvárania aktuálneho obrazu.
 
 \subsection{Binárny log} \label{mysql:binlog}
-v MySQL je možné implementovať CDC na základe sledovania binárneho logu v skratke nazývaného binlog\cite{mysql:reference_manual}. Binlog obsahuje všetky události, ktoré popisujú zmeny vykonané nad MySQL databázou ako napríklad vytváranie tabuliek alebo zmena dát. Poradie týchto události je zachované voči reálnemu poradiu ako boli SQL dotazy vykonávané. Toto binárne logovanie sa využíva na dva základne účely:
+v MySQL je možné implementovať CDC na základe sledovania binárneho logu v skratke nazývaného binlog\cite{mysql:reference_manual}. Binlog obsahuje všetky udalosti, ktoré popisujú zmeny vykonané nad MySQL databázou ako napríklad vytváranie tabuliek alebo zmena dát. Poradie týchto udalosti je zachované voči reálnemu poradiu ako boli SQL dotazy vykonávané. Toto binárne logovanie sa využíva na dva základne účely:
 \begin{itemize}
-\item Pre \textbf{replikáciu}, kde binlog na master replikačnom serveri sprostredkuváva záznamy o zmenách, ktoré majú byť odoslané slave serverom. Master server odošle události nachádzajúce sa v binlogu slave serveri, ktorý tieto události vykoná u seba za účelom udržania rovnakého dátového stavu ako je na master replikačnom serveri.
-\item Pre \textbf{obnovu systému z chybového stavu} anlicky nazývanú \textbf{recovery}. Po  nahraní zálohy databáze sú znovu spustené události zaznamenané v binlogu, ktoré nastali po vytvorení zálohy, čím sa zabezpečí konzistentný stav databázových dát z dátami v dobe zlyhania databázového serveri.
+\item Pre \textbf{replikáciu}, kde binlog na hlavnom (master) replikačnom serveri sprostredkováva záznamy o zmenách, ktoré majú byť odoslané na vedľajší (slave) serverom. Master server odošle udalosti nachádzajúce sa v binlogu slave serveri, ktorý tieto udalosti vykoná u seba za účelom udržania rovnakého dátového stavu ako je na master replikačnom serveri.
+\item Pre \textbf{obnovu systému z chybového stavu} anglicky nazývanú \textbf{recovery}. Po  nahraní zálohy databáze sú znovu spustené udalosti zaznamenané v binlogu, ktoré nastali po vytvorení zálohy, čím sa zabezpečí konzistentný stav databázových dát z dátami v dobe zlyhania databázového serveri.
 \end{itemize}
 
-Binárny log neobsahuje události, ktoré nemajú žiadny efekt na dáta ako napríklad  SELECT alebo SHOW. Události môžu byť do logu zapisované v rôznych formátoch, na základe ktorých sa mení aj spôsob replikácie dát. Tieto formáty logovania sú:
+Binárny log neobsahuje udalosti, ktoré nemajú žiadny efekt na dáta ako napríklad  SELECT alebo SHOW. udalosti môžu byť do logu zapisované v rôznych formátoch, na základe ktorých sa mení aj spôsob replikácie dát. Tieto formáty logovania sú:
 \begin{itemize}
-\item \textbf{Statement-based} logovanie, v ktorom události obsahujú SQL dotazy, ktoré produkujú zmeny v dátach (INSERT, UPDATE, DELETE). V rámci tohto logovanie môže taktiež obsahovať dotazy, ktoré môžu iba potencionálne meniť dáta napríklad DELETE dotaz, ktorý sa nespáruje so žiadnymi dátami. Pri replikácií slave server číta binlog a zaradom vykonáva SQL dotazy, ktoré obsahujú jednotlivé události.
-\item \textbf{Row-based} logovanie, v ktorom události popisujú zmeny pre jednotlivé riadky v tabuľkách. Pri replikácií sa kopírujú události, ktoré reprezentujú zmeny riadkov v tabuľkách na slave serveri. 
+\item \textbf{Statement-based} logovanie, v ktorom udalosti obsahujú SQL dotazy, ktoré produkujú zmeny v dátach (INSERT, UPDATE, DELETE). V rámci tohto logovanie môže taktiež obsahovať dotazy, ktoré môžu iba potencionálne meniť dáta napríklad DELETE dotaz, ktorý sa nespáruje so žiadnymi dátami. Pri replikácií slave server číta binlog a zaradom vykonáva SQL dotazy, ktoré obsahujú jednotlivé udalosti.
+\item \textbf{Row-based} logovanie, v ktorom udalosti popisujú zmeny pre jednotlivé riadky v tabuľkách. Pri replikácií sa kopírujú udalosti, ktoré reprezentujú zmeny riadkov v tabuľkách na slave serveri. 
 \end{itemize}
 
-Pre účely CDC v Debeziu je používané row-based logovanie, nakoľko zalogované události obsahujú zmeny pre konkrétne riadky v tabuľkách a tým pádom nieje nutné dopočítavať dáta, ktoré by boli na základe daného dotazu zmenené. Master server sa snaží ukladať do binlogu iba kompletné a vykonané transakcie, no bohužial prax ukázala, že existujú aj výnimky. To znamená, že výskyt syntakticky nevalidných dotazov je možný, ale zároveň veľmi ziedkavý. V MySQL konektoru teda nie je nutné sledovať korektnosť parsovaných dotazov.
+Pre účely CDC v Debeziu je používané row-based logovanie, nakoľko zalogované udalosti obsahujú zmeny pre konkrétne riadky v tabuľkách a tým pádom nie je nutné dopočítavať dáta, ktoré by boli na základe daného dotazu zmenené. Master server sa snaží ukladať do binlogu iba kompletné a vykonané transakcie, no bohužiaľ prax ukázala, že existujú aj výnimky. To znamená, že výskyt syntakticky nesprávnych dotazov je možný, ale zároveň veľmi zriedkavý. V MySQL konektoru teda nie je nutné sledovať korektnosť parsovaných dotazov.
 
-Pomocou SQL dotazu \textit{SHOW BINARY LOGS} je možné vylistovať aktuálne existujúce binárne logy na serveri. Následne dotazom \textit{SHOW BINLOG EVENTS [IN 'log\_name']  [FROM pos] [LIMIT [offset,] row\_count]} je možné sledovať informácie o všetkých událostiach obsiahnutých v danom binlogu ako sú napríklad typ události, jeho začiatočná a jeho konečná pozícia v logu. Na čítanie a spracovávanie binlogu ponúka MySQL nástroj \textit{mysqlbinlog}, ktorý je možné spustiť príkazom \textit{mysqlbinlog [options] log\_file}. Prvý riadok události vždy obsahuje prefix \textit{\# at} za ktorým následuje číslo reprezentujúce pozíciu události v binlogu. Podľa základného nastavenia MySQL zobrazuje mysqlbinlog události týkajúce sa zmien na úrovní riadkov zakódované ako base-64\footnote{Typ kódovania, ktorý prevádza binárne dáta na postupnost znakov} použitím interného príkazu \textit{BINLOG}. Aby bolo možné vidieť tento pseudokód je možné použiť prepínač \textit{---verbose} alebo \textit{-v}. Na výstupe bude možné vidiet tento pseudokód na riadkoch, ktoré budú začínať prefixom  \textit{\#\#\#}. Použitím prepínača \textit{---verbose} alebo \textit{-v} dvakrát, môžeme nastaviť aj zobrazovanie dátových typov a iných metadát pre každý stĺpec. Aby sa v logu nezobrazoval interný príkaz \textit{BINLOG} a zakódovaná hodnota události, je možné použiť prepínač \textit{---base64-output=DECODE-ROWS}. Kombináciou týchto prepínačov získame možnosť pohodlne sledovat obsah události týkajúcich sa zmien v dátach. \cite{mysql:reference_manual}
+Pomocou SQL dotazu \textit{SHOW BINARY LOGS} je možné zobraziť aktuálne existujúce binárne logy na serveri. Následne dotazom \textit{SHOW BINLOG EVENTS [IN 'log\_name']  [FROM pos] [LIMIT [offset,] row\_count]} je možné sledovať informácie o všetkých udalostiach obsiahnutých v danom binlogu ako sú napríklad typ udalosti, jeho začiatočná a jeho konečná pozícia v logu. Na čítanie a spracovávanie binlogu ponúka MySQL nástroj \textit{mysqlbinlog}, ktorý je možné spustiť príkazom \textit{mysqlbinlog [options] log\_file}. Prvý riadok udalosti vždy obsahuje prefix \textit{\# at} za ktorým nasleduje číslo reprezentujúce pozíciu udalosti v binlogu. Podľa základného nastavenia MySQL zobrazuje mysqlbinlog udalosti týkajúce sa zmien na úrovní riadkov zakódované ako base-64\footnote{Typ kódovania, ktorý prevádza binárne dáta na postupnost znakov} použitím interného príkazu \textit{BINLOG}. Aby bolo možné vidieť tento pseudokód je možné použiť prepínač \textit{---verbose} alebo \textit{-v}. Na výstupe bude možné vidieť tento pseudokód na riadkoch, ktoré budú začínať prefixom  \textit{\#\#\#}. Použitím prepínača \textit{---verbose} alebo \textit{-v} dvakrát, môžeme nastaviť aj zobrazovanie dátových typov a iných metadát pre každý stĺpec. Aby sa v logu nezobrazoval interný príkaz \textit{BINLOG} a zakódovaná hodnota udalosti, je možné použiť prepínač \textit{---base64-output=DECODE-ROWS}. Kombináciou týchto prepínačov získame možnosť pohodlne sledovať obsah udalosti týkajúcich sa zmien v dátach. \cite{mysql:reference_manual}
 % https://dev.mysql.com/doc/refman/5.7/en/mysqlbinlog-row-events.html
 
-Pre Debezium sú dôležité události typu:
+Pre Debezium sú dôležité udalosti typu:
 \begin{itemize}
-\item \textbf{Query}, v ktorom sa objavujú dotazy na zmenu štruktúry databáze (\nom{DDL}{Data definition language}) ako je možné vidiet na poslednom riadku príkladu události \ref{code:binlog_query_ddl}.
-\item \textbf{Table\_map}, pomocou ktorého binlog mapuje konkrétne tabuľky na identifikátor, ktorým sa následne tieto tabuľky referencuje. Príklad tejto události je možné vidieť v príklade \ref{code:binlog_update_row} na pozícii 552 a jeho následné použitie pre událosť na pozícii 621. 
-\item \textbf{Update\_rows}, ktorý obsahuje informácie o zmene dát na úrovni riadkov, ako je možné vidiet na události v príklade \ref{code:binlog_update_row} na pozícii 621.
-\item \textbf{Write\_rows}, ktorý obsahuje infomrácie o novo vzniknutých dátach.
+\item \textbf{Query}, v ktorom sa objavujú dotazy na zmenu štruktúry databáze (\nom{DDL}{Data definition language}) ako je možné vidieť na poslednom riadku príkladu udalosti \ref{code:binlog_query_ddl}.
+\item \textbf{Table\_map}, pomocou ktorého binlog mapuje konkrétne tabuľky na identifikátor, ktorým sa následne tieto tabuľky odkazuje. Príklad tejto udalosti je možné vidieť v príklade \ref{code:binlog_update_row} na pozícii 552 a jeho následné použitie pre udalosť na pozícii 621. 
+\item \textbf{Update\_rows}, ktorý obsahuje informácie o zmene dát na úrovni riadkov, ako je možné vidieť na udalosti v príklade \ref{code:binlog_update_row} na pozícii 621.
+\item \textbf{Write\_rows}, ktorý obsahuje informácie o novo vzniknutých dátach.
 \item \textbf{Delete\_rows}, ktorý obsahuje informácie o zmazaných dátach.
 \end{itemize}
 
 \lstinputlisting[language=bash,
-			caption=Query událost z binárneho logu MySQL, 
+			caption=Query udalosť z binárneho logu MySQL, 
             label=code:binlog_query_ddl]
             {code/3/binlog_query_ddl}
 
 \lstinputlisting[language=bash,
-			caption=Table\_map a Update\_rows události z binárneho logu MySQL, 
+			caption=Table\_map a Update\_rows udalosti z binárneho logu MySQL, 
             label=code:binlog_update_row]
             {code/3/binlog_update_row}
             
 \subsection{Aktuálny obraz tabuliek} \label{debezium:conistent_snapshot}
 % http://debezium.io/docs/connectors/mysql/#snapshot
-Po nakonfigurovaní a prvom spustení MySQL konektoru sa podľa základného nastavenia spustí tvorba aktuálneho obrazu tabuliek sledovanej databáze. Vo väčšine prípadoch už MySQL binlog neobsahuje kompletnú historóriu databáze a preto je tento mód v základnom nastavení. 
+Po nakonfigurovaní a prvom spustení MySQL konektoru sa podľa základného nastavenia spustí tvorba aktuálneho obrazu tabuliek sledovanej databáze. Vo väčšine prípadoch už MySQL binlog neobsahuje kompletnú históriu databáze a preto je tento mód v základnom nastavení. 
 
-Pri kažnom vytváraní aktuálneho obrazu, konektor postupuje podľa týchto krokov\cite{debezium:consistent_snapshot}:
+Pri každom vytváraní aktuálneho obrazu, konektor postupuje podľa týchto krokov\cite{debezium:consistent_snapshot}:
 \begin{enumerate}
 \item Aktivuje globálny zámok čítania (read lock) aby zabránil ostatným databázovým klientom v zapisovaní.
 \item Spustí transakciu s izoláciou na opakované čítanie (repeatable read)\footnote{Stupeň izolácie založený na používaní \textit{read} a \textit{write} zámkoch, ktorý ale nezabráni prítomnosti fantómov vznikajúcich v stiuácii, keď v jednej transakcii podľa rovnakého dotazu čítame dáta 2x z rôznymi výsledkami, pretože v medzičase stihla iná transakcia vytvoriť alebo zmazať časť týchto dát.}, aby všetky nasledujúce čítania v rámci tejto transakcie boli voči jednému konzistentnému obrazu.
 \item Prečíta aktuálnu pozíciu binlogu.
-\item Prečíta schéma databází a tabuliek na základe konfigurácie konektoru.
-\item Uvolní globálny zámok, aby ostaný databázový klienti mohli znovu zapisovať do databáze.
+\item Prečíta schéma databáz a tabuliek na základe konfigurácie konektoru.
+\item Uvoľní globálny zámok, aby ostatný databázový klienti mohli znovu zapisovať do databáze.
 \item Voliteľne zapíše zmeny DDL do Kafka topiku vrátane všetkých potrebných SQL dotazov.
-\item Oskenuje všetky databázové tabuľky a vygeneruje príslušné \textit{create} události  Kafka topiky pre jednotlivé riadky v tabuľkách.
+\item Skontroluje všetky databázové tabuľky a vygeneruje príslušné \textit{create} udalosti  Kafka topiky pre jednotlivé riadky v tabuľkách.
 \item Potvrdí transakciu.
 \item Do konektorového offsetu zaznamená, že úspešne ukončil vytváranie obrazu.
 \end{enumerate}
 
-Transakcia vytvorená v druhom kroku nezabráni ostatným klientom upravovať dáta, ale poskytne konektoru konzistentný a nemenný pohľad na dáta v tabuľkách. Nakoľko transakcia nezabráni klientom aplikovať DDL zmeny, ktoré by mohli vadiť konektoru pri čítaní pozície a schémat v binlogu, je nutné v prvom kroku použiť globálny zámok na čítanie k zamedzeniu tohto problému. Tento zámok je udžiavaný na veľmi krátku dobu potrebnú pre konektor na vykonanie krokov tri a štyri. V piatom kroku je tento zámok uvolnený predtým, než konektor vykoná väčšinu práce pri kopírovaní údajov.
+Transakcia vytvorená v druhom kroku nezabráni ostatným klientom upravovať dáta, ale poskytne konektoru konzistentný a nemenný pohľad na dáta v tabuľkách. Nakoľko transakcia nezabráni klientom aplikovať DDL zmeny, ktoré by mohli vadiť konektoru pri čítaní pozície a schémat v binlogu, je nutné v prvom kroku použiť globálny zámok na čítanie k zamedzeniu tohto problému. Tento zámok je udržiavaný na veľmi krátku dobu potrebnú pre konektor na vykonanie krokov tri a štyri. V piatom kroku je tento zámok uvoľnený predtým, než konektor vykoná väčšinu práce pri kopírovaní údajov.
 
-\textbf{Note: moze byt popisane este viac ak by bolo potrebne nahrabat strany :)}
+% \textbf{Note: moze byt popisane este viac ak by bolo potrebne nahrabat strany :)}
 
 %  DDL PARSER 
 % http://debezium.io/blog/2016/04/15/parsing-ddl/
 \section{DDL parser}
-Pri čítaní binárneho logu MySQL konektor parsuje DDL dotazy na základe ktorých si v pamäti vytvára modely schémat každej tabuľky podľa toho ako sa vyvíjali v čase. Tento proces je veľmi dôležitý, pretože konekor generuje události pre tabuľky, v ktorých definuje schéma tabuľky v čase, kedy daná událosť vznikla. Aktálne schéma sa nemôže použiť, nakoľko sa môže zmeniť v danom čase pípadne na danej pozícii v logu na ktorej konektor číta. 
+Pri čítaní binárneho logu MySQL konektor parsuje DDL dotazy na základe ktorých si v pamäti vytvára modely schémat každej tabuľky podľa toho ako sa vyvíjali v čase. Tento proces je veľmi dôležitý, pretože konektor generuje udalosti pre tabuľky, v ktorých definuje schéma tabuľky v čase, kedy daná udaloť vznikla. Aktuálne schéma sa nemôže použiť, nakoľko sa môže zmeniť v danom čase prípadne na danej pozícii v logu na ktorej konektor číta. 
 
-Konektor produkuje správy použitím Kafka Connect Schemas, ktoré definujú jednoduchú dátovú štruktúru obsahujúcu názvy a typy polí a spôsob organizácie týchto polí. Pri generovaní správy na událosť týkajúci sa dátovej zmeny je najprv nutné mať Kafka Connect \inlinecode{Schema} objekt, v ktorom definujeme všetky potrebné polia. Následne je nutné konvertovať usporiadané pole hodnôt stĺpcov do Kafka Connect \inlinecode{Struct} objektu na základe polí a ich hodnôt z odchytenej události.
+Konektor produkuje správy použitím Kafka Connect Schemas, ktoré definujú jednoduchú dátovú štruktúru obsahujúcu názvy a typy polí a spôsob organizácie týchto polí. Pri generovaní správy na udaloť týkajúci sa dátovej zmeny je najprv nutné mať Kafka Connect \inlinecode{Schema} objekt, v ktorom definujeme všetky potrebné polia. Následne je nutné konvertovať usporiadané pole hodnôt stĺpcov do Kafka Connect \inlinecode{Struct} objektu na základe polí a ich hodnôt z odchytenej udalosti.
 
-Ak Debezium konektor odchytí DDL událost, stačí mu aktualizovať model, ktorý si drží v pamäti a ten následne použiť na generovanie \inlinecode{Schema} objektu. V rovnakom čase sa vytvrí komponenta, ktorá bude používať tento \inlinecode{Schema} objekt na vytváranie \inlinecode{Struct} objektu z hodnôt v odchytenej události. Tento proces sa vykoná raz a použije sa na všetky DML údálosti až do doby pokiaľ sa neodchytí ďalší DDL dotaz, po ktorom bude opäť nutné aktualizovať model v pamäti.
+Ak Debezium konektor odchytí DDL udalost, stačí mu aktualizovať model, ktorý si drží v pamäti a ten následne použiť na generovanie \inlinecode{Schema} objektu. V rovnakom čase vytvorí komponentu, ktorá bude používať tento \inlinecode{Schema} objekt na vytváranie \inlinecode{Struct} objektu z hodnôt v odchytenej udalosti. Tento proces sa vykoná raz a použije sa na všetky DML údálosti až do doby pokiaľ sa neodchytí ďalší DDL dotaz, po ktorom bude opäť nutné aktualizovať model v pamäti.
 
-Nato aby bolo možné túto akciu vykonať je nutné parsovať DDL dotazy, pričom pre potreby Debezia stačí vedieť rozpozať iba malú časť z celej DDL gramatiky. Model, ktorý sa udržiava v pamäti a zbytok funkcionality spojený z generovaním \inlinecode{Schema} objektu a konventoru hodnôt na \inlinecode{Struct} objekt je generické nakoľko nie je priamo spojené z MySQL.
+Nato aby bolo možné túto akciu vykonať je nutné parsovať DDL dotazy, pričom pre potreby Debezia stačí vedieť rozpoznať iba malú časť z celej DDL gramatiky. Model, ktorý sa udržiava v pamäti a zbytok funkcionality spojený z generovaním \inlinecode{Schema} objektu a konvertoru hodnôt na \inlinecode{Struct} objekt je generické nakoľko nie je priamo spojené z MySQL.
 
 \subsection{Framework na parsovanie DDL}
 Keďže Debezium nenašlo žiadnu použiteľnú knižnicu na parsovanie DDL, rozhodlo sa implementovať vlastný framework podľa ich potrieb, ktoré sú\cite{debezium:parse_ddl}:
 \begin{itemize}
-\item Parovanie DDL dotazov a aktualizácia modelu v pamäti.
-\item Zameranie sa na podstatné dotazy ako sú \inlinecode{CREATE}, \inlinecode{UPDATE} a \inlinecode{DROP} tabuliek, pričom sa ostané dotazy budú ignorovať bez nutnosti ich parsovať.
-\item Štruktúra kódu parsru, ktorá bude podobná dokumentácii MySQL DDL gramatiky a názvoslovie metód, ktorá bude odzrkadľovať pravidlá gramatiky. Takúto implementáciu je jednoduhšie udržiavať v priebehu času.
+\item Parovanie DDL dotazov a aktualizácia modelu v pamäti. 
+\item Zameranie sa na podstatné dotazy ako sú \textit{CREATE}, \v{UPDATE} a \textit{DROP} tabuliek, pričom sa ostatné dotazy budú ignorovať bez nutnosti ich parsovať.
+\item Štruktúra kódu parsru, ktorá bude podobná dokumentácii MySQL DDL gramatiky a názvoslovie metód, ktorá bude odzrkadľovať pravidlá gramatiky. Takúto implementáciu je jednoduchšie udržiavať v priebehu času.
 \item Umožniť vytvorenie parserov pre PostreSQL, Oracle, SQLServer a všetkých ostatných DBMS, ktoré budú potrebné.
-\item Umožniť prispôsobenie pomocou dedičnosti a polymorfismu.
-\item Uľahčit vývoj, ladenie a testovanie parserov.
+\item Umožniť prispôsobenie pomocou dedičnosti a polymorfizmu.
+\item Uľahčiť vývoj, ladenie a testovanie parserov.
 \end{itemize}
 
-Výsledný framework pozostáva z tokenizeru, ktorý konvertuje DDL dotaz v jednom reťazci na sekvenciu tokenov. Každý token reprezentuje interpunkčné znamienka, citované reťazce, slová a symboly, kľučové slová, komentáre a ukončujúce znaky ako napríklad bodkočiarku pre MySQL. DDL parser prechádza sled tokenov a volá metódy na spracovanie variácii sady tokenov.Parser taktiez využíva interny \inlinecode{DataTypeParser} na spracovanie dátových typov SQL, ktoré si je možné pre jednotlivé DBMS ručne zaregistrovať.
+Výsledný framework pozostáva z tokenizeru, ktorý konvertuje DDL dotaz v jednom reťazci na sekvenciu tokenov. Každý token reprezentuje interpunkčné znamienka, citované reťazce, slová a symboly, kľúčové slová, komentáre a ukončujúce znaky ako napríklad bodkočiarku pre MySQL. DDL parser prechádza sled tokenov a volá metódy na spracovanie variácii sady tokenov. Parser taktiež využíva interný \inlinecode{DataTypeParser} na spracovanie dátových typov SQL, ktoré si je možné pre jednotlivé DBMS ručne zaregistrovať.
 
-\inlinecode{MySqlDdlParser} trieda dedí od základnej triedy \inlinecode{DdlParser} a sprostredkuváva celú parsovaciu logiku špecifickú pre MySQL. Napríklad DDL dotaz \ref{code:ddl_sql_example} je možné sparsovať podľa ukážky \ref{code:mysql_ddl_parse_example_old}.
+\inlinecode{MySqlDdlParser} trieda dedí od základnej triedy \inlinecode{DdlParser} a sprostredkováva celú parsovaciu logiku špecifickú pre MySQL. Napríklad DDL dotaz \ref{code:ddl_sql_example} je možné zparsovať podľa ukážky \ref{code:mysql_ddl_parse_example_old}.
 
 \lstinputlisting[language=MySQL,
 			caption=DDL dotaz v MySQL, 
@@ -103,11 +103,11 @@ Výsledný framework pozostáva z tokenizeru, ktorý konvertuje DDL dotaz v jedn
 \inlinecode{Tables} objekt reprezentuje model uložený v pamäti konkrétnej databáze. Parser zprocesuje jednotlivé DDL dotazy a aplikuje ich na odpovedajúce definície tabuliek nachádzajúce sa v \inlinecode{Tables} objekte.
 
 \subsection{Implementácia MySQL DDL parsru}
-Každá implementácia \inlinecode{DdlParser} implementuje metódu, ktorá parsuje DDL dotazy poskytnuté v reťazci. Táto metóda vytvára nový \inlinecode{TokenStream} pomocou \inlinecode{DdlTokenizer}, ktorý rozdelí znaky v reťazci do typovaných \inlinecode{Token} objektov. Následne volá ďalšiu parsovaciu metódu v ktorej nastaví lokálne premenné a snaží sa zaradom parsovať DDL dotazy do doby, kým žíadny ďalší nenájde. Ak by počas parsovania nastala chyba napríklad že by sa nenašla zhoda, parser vygeneruje \inlinecode{ParsingException}, ktorá obsahuje riadok, stĺpec a chybovú správu oznamujúcu aký token bol očakávaný a aký sa našiel. V prípade chyby sa \inlinecode{TokenStream} pretočí na začiatok, aby sa prípadne mohla použiť implementácie iného parseru.
+Každá implementácia \inlinecode{DdlParser} implementuje metódu, ktorá parsuje DDL dotazy poskytnuté v reťazci. Táto metóda vytvára nový \inlinecode{TokenStream} pomocou \inlinecode{DdlTokenizer}, ktorý rozdelí znaky v reťazci do typovaných \inlinecode{Token} objektov. Následne volá ďalšiu parsovaciu metódu v ktorej nastaví lokálne premenné a snaží sa zaradom parsovať DDL dotazy do doby, kým žiadny ďalší nenájde. Ak by počas parsovania nastala chyba napríklad že by sa nenašla zhoda, parser vygeneruje \inlinecode{ParsingException}, ktorá obsahuje riadok, stĺpec a chybovú správu oznamujúcu aký token bol očakávaný a aký sa našiel. V prípade chyby sa \inlinecode{TokenStream} pretočí na začiatok, aby sa prípadne mohla použiť implementácie iného parseru.
 
-Pri každom volaní metódy \inlinecode{parseNextStatement} je predavaný objekt \inlinecode{Marker}, ktorý ukazuje na začiatočnú pozíciu parsovaného dotazu. Vďaka polymorfizmu \inlinecode{MySqlDdlParser} prepisuje implementáciu \inlinecode{parseNextStatement} metódy (ukážka \ref{code:mysqlParseNextStatement}), v ktorej kontroluje, čí prvý token vyhovuje niektorému z typov MySQL DDL gramatiky. Po najdení vyhovujúceho tokenu sa zavolá odpovedajúca metóda na ďalšie parsovanie. 
+Pri každom volaní metódy \inlinecode{parseNextStatement} je predávaný objekt \inlinecode{Marker}, ktorý ukazuje na začiatočnú pozíciu parsovaného dotazu. Vďaka polymorfizmu \inlinecode{MySqlDdlParser} prepisuje implementáciu \inlinecode{parseNextStatement} metódy (ukážka \ref{code:mysqlParseNextStatement}), v ktorej kontroluje, čí prvý token vyhovuje niektorému z typov MySQL DDL gramatiky. Po nájdení vyhovujúceho tokenu sa zavolá odpovedajúca metóda na ďalšie parsovanie. 
 
-Pre príklad, ak by parser chcel parsovať dotaz začínajúci na \textit{CREATE TABLE ...}. Prvým parsované slovo je \textit{CREATE}, čím by sa podľa ukážky z kódu \ref{code:mysqlParseNextStatement} zavolá metóda \inlinecode{parseCreate}. V nej sa toto slovo skonzumuje a rovnakým spôsobom nastáva kontrola druhého slova, kde sa po vyhodnotení hodnoty \textit{TABLE} zavolá metóda \inlinecode{parseCreateTable} (ukážka \ref{code:parseCreateTable}). Táto metóda odzrkadľuje následovné pravidlá MySQL gramatiky pre \mbox{\textit{CREATE TABLE}}:
+Pre príklad, ak by parser chcel parsovať dotaz začínajúci na \textit{CREATE TABLE ...}. Prvým parsované slovo je \textit{CREATE}, čím by sa podľa ukážky z kódu \ref{code:mysqlParseNextStatement} zavolá metóda \inlinecode{parseCreate}. V nej sa toto slovo skonzumuje a rovnakým spôsobom nastáva kontrola druhého slova, kde sa po vyhodnotení hodnoty \textit{TABLE} zavolá metóda \inlinecode{parseCreateTable} (ukážka \ref{code:parseCreateTable}). Táto metóda odzrkadľuje nasledujúce pravidlá MySQL gramatiky pre \mbox{\textit{CREATE TABLE}}:
 \newline
 \begin{lstlisting}[language=MySQL, frame=none, numbers=none]
 CREATE [TEMPORARY] TABLE [IF NOT EXISTS] tbl_name
@@ -128,4 +128,4 @@ create_definition:
     ...
 \end{lstlisting}
 
-Metóda \inlinecode{parseCreateTable} sa snaží najskôr skonzumovať nepovinné slovo \textit{TEMPORARY}, potom slovo \textit{TABLE}, nepovinný fragment \textit{IF NOT EXISTS} a následne konzumuje a parsuje názov tabuľky. Ak by dotaz obsahoval fragment \textit{LIKE otherTable}, tak sa použije objekt \inlinecode{Tables}, z ktorého sa získa definícia odkazovanej tabuľky. V ostatných prípadoch sa na úpravu stávajúcej tabuľky použije \inlinecode{TableEditor} objekt. Takýmto spôsobom parser pokračuje vo svojej činnositi ďalej a snaží sa parsovať dotaz na základe pravidiel gramatiky.
+Metóda \inlinecode{parseCreateTable} sa snaží najskôr skonzumovať nepovinné slovo \textit{TEMPORARY}, potom slovo \textit{TABLE}, nepovinný fragment \textit{IF NOT EXISTS} a následne konzumuje a parsuje názov tabuľky. Ak by dotaz obsahoval fragment \textit{LIKE otherTable}, tak sa použije objekt \inlinecode{Tables}, z ktorého sa získa definícia odkazovanej tabuľky. V ostatných prípadoch sa na úpravu stávajúcej tabuľky použije \inlinecode{TableEditor} objekt. Takýmto spôsobom parser pokračuje vo svojej činnosti ďalej a snaží sa parsovať dotaz na základe pravidiel gramatiky.
