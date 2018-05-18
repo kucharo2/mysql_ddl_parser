@@ -15,6 +15,8 @@
 \usepackage{makeidx}
 \usepackage{amsthm}
 
+\usepackage{pdfpages}
+
 \theoremstyle{definition}
 \newtheorem{definice}{Definícia}[section]
 
@@ -37,7 +39,7 @@
 \usepackage[
 pdftitle={\WorkTitle},				% nastaví v informacích o pdf název
 pdfauthor={\FirstandFamilyName},	% nastaví v informacích o pdf autora
-colorlinks=true,					% před tiskem doporučujeme nastavit na false, aby odkazy a url nebyly šedé při ČB tisku
+colorlinks=false,					% před tiskem doporučujeme nastavit na false, aby odkazy a url nebyly šedé při ČB tisku
 breaklinks=true,
 urlcolor=red,
 citecolor=blue,
@@ -89,7 +91,10 @@ unicode=true,
 	% Ve vysledne svazane praci bude nahrazena skutecnym 
 	% oficialnim zadanim vasi prace.
 	
-%     \include{zadani}ľ
+%     \include{zadani}
+    
+    \includepdf[pages=1]{zadani_bez_podpisu.pdf}
+    \includepdf[pages=2]{zadani_bez_podpisu.pdf}
 
 	%%%%%%%%%%%%%%%%%%%%%%%%%%    
 	% Titulni stranka / Title page 

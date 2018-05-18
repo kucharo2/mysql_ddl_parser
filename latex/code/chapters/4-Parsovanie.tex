@@ -1,23 +1,23 @@
 \chapter{Syntaktická analýza}
 Syntaktickou analýzou (slangovo z angličtiny tiež \textbf{parsovaním}) sa v teórii rozumie konštrukcia derivačného stromu vety bezkontextového jazyka\cite{CVUT:program_language} popísaného v kapitole \ref{CFG}. Program, ktorý vykonáva túto úlohu sa volá syntaktický analyzátor (slangovo \textbf{parser}). Počas konštrukcie derivačného stromu parser zachováva hierarchické usporiadanie symbolov, ktoré je vhodné pre ďalšie spracovanie.
 
-Parsovanie je taktiež možné si predstaviť ako inverziu k napĺňaniu šablón. Šablóna definuje napríklad štruktúru textu s variabilnými premennými, ktoré je treba naplniť dátami a parsovanie identifikuje túto šablónu a extrahuje dáta, ktoré boli do nej vložené.
+Parsovanie je taktiež možné si predstaviť ako inverziu k napĺňaniu šablón. Šablóna definuje napríklad štruktúru textu s variabilnými premennými, ktoré je potrebné naplniť dátami a parsovanie identifikuje túto šablónu a extrahuje dáta, ktoré boli do nej vložené.
 
 \begin{figure}[H]
 \begin{center}
 \includegraphics[width=10cm]{figures/templatingAndParsing.PNG}
-\caption{Príklad parsovania a naplňovania šablóny}
+\caption{Príklad parsovania a napĺňania šablóny}
 \label{fig:templatingAndParsing}
 \end{center}
 \end{figure}
 
-Podstata parsovania je veľmi dôležitá, pretože rôzne entity potrebujú dáta na spracovanie v rôznych formátoch. Parsovanie umožňuje transformovať získané data tak, aby im mohol porozumieť špecifický software. 
+Podstata parsovania je veľmi dôležitá, pretože rôzne entity potrebujú dáta na spracovanie v rôznych formátoch. Parsovanie umožňuje transformovať získané dáta tak, aby im mohol porozumieť špecifický software. 
 
 \section{Teória parsovania}
-Na správne pochopenie problému parsovania je nutné si najprv zadefinovať základné pojmy, ktoré sú s ním spojené. Teória parsovania je postavená na teórii jazykov, gramatík a automatov, z ktorej najdôležitejšie pojmi sú definované v rámci tejto sekcie.
+Na správne pochopenie problému parsovania je nutné najprv zadefinovať základné pojmy, ktoré sú s ním spojené. Teória parsovania je postavená na teórii jazykov, gramatík a automatov, z ktorej najdôležitejšie pojmy sú definované v rámci tejto sekcie.
 
 \subsection{Deterministický konečný automat}\label{DFA}
-Konečné automaty sa používajú v rôznych oboroch ako napríklad pri prekladačoch, spracovávaní prirodzeného jazyka, pri návrhu hardwaru a ďalších \cite{demlova:automaty}. Predstavujú model systémov, ktoré rozpoznajú, či je vstupný reťazec patrí do jazyka. Deterministický konečný automat (\nom{DFA}{Deterministic Finite Automaton}), taktiež aj \textit{akceptor} je najpoužívanejší zo štyroch typov automatov.
+Konečné automaty sa používajú v rôznych oboroch ako napríklad pri prekladačoch, spracúvaní prirodzeného jazyka, pri návrhu hardwaru a ďalších \cite{demlova:automaty}. Predstavujú model systémov, ktoré rozpoznajú, či vstupný reťazec patrí do jazyka. Deterministický konečný automat (\nom{DFA}{Deterministic Finite Automaton}), taktiež aj \textit{akceptor}, je najpoužívanejší zo štyroch typov automatov.
 
 \begin{definice}
 \textit{Deterministický konečný automat} $M$ je pätica $M = (Q,\Sigma,\delta, q_0, F)$, kde
@@ -54,7 +54,7 @@ $L(M) = \{\omega|\delta^*(q_0,u) \in F\}$.\cite{demlova:automaty}
 Každý jazyk $L$, pre ktorý existuje deterministický konečný automat prijímajúci tento jazyk, sa nazýva \textbf{regulárny jazyk}.
 
 \subsection{Regulárny výraz}\label{regexp}
-Regulárny výraz je ďalšia možnosť ako popísať regulárne jazyky, ktoré sú uzatvorené vzhľadom k operáciám zjednotenia, súčinu a iterácie. Regulárne výrazy sú postavené na Kleeneho operátore(*), ktorý sa používa na označenie, že určitý prvok môže byť prítomný nula alebo nekonečne veľa krát.
+Regulárny výraz je ďalšia možnosť, ako popísať regulárne jazyky, ktoré sú uzatvorené vzhľadom k operáciám zjednotenia, súčinu a iterácie. Regulárne výrazy sú postavené na Kleeneho operátore(*), ktorý sa používa na označenie, že určitý prvok môže byť prítomný nula alebo nekonečne veľa krát.
 \begin{definice}[\textbf{Regulárne výrazy nad abecedou}]
 Je daná abeceda $\Sigma$. Množina všetkých regulárnych výrazov nad $\Sigma$ je definovaná induktívne:
 \begin{itemize}
@@ -75,7 +75,7 @@ Bezkontextový jazyk je jazyk nad abecedou, ktorý je prijímaný bezkontextovou
 \begin{definice}
 \textit{Bezkontextová gramatika} je usporiadaná štvorica $\mathcal{G} = (N, \Sigma , S, P)$, kde
 \begin{itemize}
-\item $N$ je konečná množina tzv. \textit{neterminálov}\footnote{Premenné symmboli, ktoré sa reprezentjú pomocou velkých písmen}
+\item $N$ je konečná množina tzv. \textit{neterminálov}\footnote{Premenné symboly, ktoré sa reprezentjú pomocou velkých písmen}
 \item $\Sigma$ je konečná neprázdna množina tzv. \textit{terminálov}\footnote{Písmená vstupnej abecedy, často reprezentované malými písmenami, číslami alebo špeciálnymi symbolmi}, kde platí $N \cap \Sigma = \emptyset$
 \item $S \in N$ je \textit{štartovací symbol}
 \item $P$ je konečná množina pravidiel typu $\alpha \rightarrow \beta$, kde $\alpha$ a $\beta$ sú slová nad $N \cup \Sigma$ taká, že $\alpha$ obsahuje aspoň jeden neterminál. 
@@ -83,7 +83,7 @@ Bezkontextový jazyk je jazyk nad abecedou, ktorý je prijímaný bezkontextovou
 \end{itemize}
 \end{definice}
 
-Bezkontextové gramatiky sa prvýkrát používali pri štúdií ľudských jazykov na pochopenie vzťahu medzi podstatným menom, slovesom a predložkou. Ich kombináciou vznikajú frázy, ktoré vedú k prirodzenej rekurzii, nakoľko podstatné meno môže byť súčasťou slovesnej frázy a pod. Bezkontextové gramatiky dokážu zachytiť dôležité aspekty týchto vzťahov \cite{computation_theory}.
+Bezkontextové gramatiky sa prvýkrát používali pri štúdiu ľudských jazykov na pochopenie vzťahu medzi podstatným menom, slovesom a predložkou. Ich kombináciou vznikajú frázy, ktoré vedú k prirodzenej rekurzii, nakoľko podstatné meno môže byť súčasťou slovesnej frázy a pod. Bezkontextové gramatiky dokážu zachytiť dôležité aspekty týchto vzťahov \cite{computation_theory}.
 
 Špecifikácia a kompilácia programovacích jazykov je jedným z použití CFG. Gramatika programovacieho jazyka sa často používa na pochopenie jeho syntaxe.
 
@@ -144,10 +144,10 @@ Každé pravidlo v BNF má nasledujúcu štruktúru:
 \textit{<neterminál> ::= výraz}
 \end{center}
 
-Všetky netreminály v BNF sa zapisujú do špicatých zátvoriek \textit{< >}, či už sú použité na pravej alebo ľavej strane pravidla. Výraz sa môže obsahovať terminály aj neterminály a je definovaný ich spojením, alebo výberom. Symbolmi vo výraze postavené vedľa seba určujú postupnosť symbolov a použitie znaku vertikálnej lišty určuje výber zo symbolov.
+Všetky netreminály v BNF sa zapisujú do špicatých zátvoriek \textit{< >}, či už sú použité na pravej alebo ľavej strane pravidla. Výraz sa môže obsahovať terminály aj neterminály a je definovaný ich spojením alebo výberom. Symboly vo výraze postavené vedľa seba určujú postupnosť symbolov a použitie znaku vertikálnej lišty určuje výber zo symbolov.
 
 \subsection{Rozšírená Backus-Naur Form notácia}\label{EBNF}
-Pre zjednodušenie zápisu gramatiky, a aby bolo možné jednoduchšie definovať určité typy pravidiel, vznikla kolekcia rozšírení k Backus-Naur Form notácii (\nom{EBNF}{Extended Backus-Naur Form}), ktorá bola štandardizovaná ako ISO/IEC 14997\cite{ISO14977}. Terminály môžu byť vyjadrené konkrétnym postupom znakov v úvodzovkách, alebo pomocou triedy literálov, ktorú je možné zapísať pomocou regulárneho výrazu. Priraďovací znak pravidla je zmenený z ::= na jednoduché = a vynecháva sa zápis špicatých zátvoriek okolo neterminálov. Tieto malé syntaktické zmeny nie sú tak dôležité ako dodatočné operácie EBNF, ktoré sa môžu použiť vo výraze.
+Pre zjednodušenie zápisu gramatiky a aby bolo možné jednoduchšie definovať určité typy pravidiel, vznikla kolekcia rozšírení k Backus-Naur Form notácii (\nom{EBNF}{Extended Backus-Naur Form}), ktorá bola štandardizovaná ako ISO/IEC 14997\cite{ISO14977}. Terminály môžu byť vyjadrené konkrétnym postupom znakov v úvodzovkách alebo pomocou triedy literálov, ktorú je možné zapísať pomocou regulárneho výrazu. Priraďovací znak pravidla je zmenený z ::= na jednoduché = a vynecháva sa zápis špicatých zátvoriek okolo neterminálov. Tieto malé syntaktické zmeny nie sú tak dôležité ako dodatočné operácie EBNF, ktoré sa môžu použiť vo výraze.
 
 \textbf{Nepovinnosť} -- Použitím hranatých zátvoriek okolo výrazu \textit{[výraz]} sa indikuje možnosť použitia tohto výrazu v sekvencii. Jednoduchšie povedané, výraz môže, ale nemusí byť použitý vo výslednej sekvencii. Toto pravidlo je taktiež možné zapísať pomocou znaku ?. Príklad: 
 \begin{center}
@@ -160,7 +160,7 @@ term = "\text{-}"? factor
 expr = term ("\text{+}" \text{|} "\text{-}") expr
 \end{center}
 
-\textbf{Opakovanie} -- Použitím zložených zátvoriek okolo výrazu \textit{\{výraz\}} je možné indikovať opakovanie výrazu. To znamená, že výraz sa nemusí v sekvencii vyskytovať, ale zároveň môže byť nekonečne krát za sebou. Toto je pravidlo je taktiež možné zapísať pomocou znaku *. Príklad:
+\textbf{Opakovanie} -- Použitím zložených zátvoriek okolo výrazu \textit{\{výraz\}} je možné indikovať opakovanie výrazu. To znamená, že výraz sa nemusí v sekvencii vyskytovať, ale zároveň môže byť nekonečne krát za sebou. Toto pravidlo je taktiež možné zapísať pomocou znaku *. Príklad:
 \begin{center}
 args = arg \{"," \text{ }arg\}\\
 args = arg ("," \text{ }arg)$^*$
@@ -198,14 +198,14 @@ Parsovanie pomocou regulárnych výrazov je naozaj možné, ale iba pre regulár
 \section{Štruktúra bezkontextových parserov}
 Syntaktickej analýze spravidla predchádza \textit{lexikálna analýza}, pri ktorej sa vstupný reťazec rozdeľuje na postupnosť lexikálnych symbolov (lexémov). V programovacích jazykoch sa taktiež nazývajú \textbf{tokeny} a definujú identifikátory, literály (čísla, reťazce), kľúčové slová, operátory, oddeľovače a pod. Pre parser sú tokeny ďalej nedeliteľné stavebné jednotky, ktoré používa pri interpretácií vstupných dát. Program vykonávajúci túto úlohu sa nazýva štrukturálny analyzátor, no v programovaní sa častejšie narazí na výraz \textbf{lexer} alebo \textbf{tokenizer} bližšie popísaný v kapitole \ref{lexer}. 
 
-V kontexte parsovania sa slovo parser môže odkazovať na program, ktorý vykonáva celý proces ale aj na správny parser (syntaktický analyzátor), ktorý analyzuje tokeny vytvorené lexerom. Dôvodom toho je, že parser sa stará o najdôležitejšiu a najťažšiu časť celého procesu parsovania. Lexer hrá v procese parsovania iba úlohu pomocníka na uľahčenie práce parseru.
+V kontexte parsovania sa slovo parser môže odkazovať na program, ktorý vykonáva celý proces, ale aj na správny parser (syntaktický analyzátor), ktorý analyzuje tokeny vytvorené lexerom. Dôvodom toho je, že parser sa stará o najdôležitejšiu a najťažšiu časť celého procesu parsovania. Lexer hrá v procese parsovania iba úlohu pomocníka na uľahčenie práce parseru.
 
 Parsre sú významnou súčasťou kompilátorov alebo interpreterov programovacích jazykov, no samozrejme môžu byť súčasťou aj rôznych typov programov. Čo sa týka parsovania programovacích jazykov, parser dokáže určiť iba syntaktickú korektnosť parsovaného výrazu. Výstup parseru je ale základom pre zistenie sémantickej korektnosti.
 
 \subsection{Lexer}\label{lexer}
 Lexery zohrávajú dôležitú  rolu pri parsovaní, pretože transformujú počiatočný vstup na jednoduchšie spracovateľnú formu pre parser. Napísanie gramatiky pre lexer je zvyčajne jednoduchušie, nakoľko nie je nutné riešiť vymoženosti bezkotextového jazyka ako je napríklad opakovanie, rekurzia a podobne.
 
-Jedna z veľmi dôležitých úloh lexera je vysporiadanie sa z medzerami v parsovanom výraze. Vo väčšine prípadoch chceme, aby prázdne medzery boli lexerom odstránené. Ak by sa tak nestalo, znamenalo by to, že by sa s nimi musel vysporiadať samotný parser. To by znamenalo ich kontrolu pri každom jednom použitom tokene, čo by sa rýchlo stalo nepríjemným.
+Jedna z veľmi dôležitých úloh lexera je vysporiadanie sa z medzerami v parsovanom výraze. Vo väčšine prípadov chceme, aby prázdne medzery boli lexerom odstránené. Ak by sa tak nestalo, znamenalo by to, že by sa s nimi musel vysporiadať samotný parser. To by znamenalo ich kontrolu pri každom jednom použitom tokene, čo by sa rýchlo stalo nepríjemným.
 
 Existujú prípady, kedy to nemôžeme urobiť, pretože medzery sú pre daný jazyk relevantné, ako napríklad v prípade Pythonu, kde sa používa identifikácia bloku kódu a je nutné určiť, ktoré medzery sú pre parser dôležité. Aj napriek tomu je zvyčajne lexer zodpovedný za riešenie problému, ktorá medzera je relevantná a ktorá nie. Napríklad pri parsovaní Pythonu chceme, aby lexer overil, či medzery definujú odsadenie (relevantná) alebo medzery medzi slovami (irelevantná). \cite{tomassetti:parsing}
 
@@ -232,7 +232,7 @@ Vzhľadom na to, že lexery sú takmer výlučne používané v spojení s parse
 IPv4 = [0-9]+ "."\text{ [}0-9]+ "."\text{ [}0-9]+ "."\text{ [}0-9]+
 \end{center}
 
-Ak by bol ale problém zložitejší a program by chcel analyzovať IP adresu a zistiť z nej informácie, ako napríklad krajinu, bude parser potrebovať jednotlivé hodnoty IP adresy samostatne. V tomto prípade lexer rozdelí IP adresu na dva druhy tokenov (číslo a bodka).
+Ak by bol problém zložitejší a program by chcel analyzovať IP adresu a zistiť z nej informácie, ako napríklad krajinu, bude parser potrebovať jednotlivé hodnoty IP adresy samostatne. V tomto prípade lexer rozdelí IP adresu na dva druhy tokenov (číslo a bodka).
 
 \begin{center}
 \begin{tabular}{p{0.65\textwidth}}
@@ -264,7 +264,7 @@ Token "Hello"{ }nie je pre parser definovaný. Niektoré nástroje na parsovanie
 \subsection{Pravidlá s ľavou rekurziou}\label{left-recursion-rule}
 V rámci bezkontextových gramatík sa často využíva ľavá rekurzia na definovanie zľava asociatívnych operácií. Tento problém sa najčastejšie rieši v rámci Top Down parserov (viď kapitola \ref{parsing-alg-basics}) s rekurzívnym zostupom (viď kapitola \ref{recursive-descent}). 
 
-Pravidlá s ľavou rekurziou sú také pravidlá, ktoré začínajú s referenciu sami na seba, ako napríklad $A \rightarrow A\alpha$. Do toho problému spadá taktiež nepriama ľavá rekurzia, čo znamená že referencia na samého seba sa objaví v rámci iného pravidla, ako napríklad:
+Pravidlá s ľavou rekurziou sú také pravidlá, ktoré začínajú s referenciou samy na seba, ako napríklad $A \rightarrow A\alpha$. Do toho problému spadá taktiež nepriama ľavá rekurzia, čo znamená že referencia na samého seba sa objaví v rámci iného pravidla, ako napríklad:
 
 \begin{center}
 \begin{tabular}{p{0.15\textwidth}}
@@ -273,9 +273,9 @@ $B \rightarrow A\beta$\\
 \end{tabular}
 \end{center}
 
-Predpokladajme, že sa snažím zparsovať pravidlo $A$ na danom mieste vo vstupnom reťazci. Ak by sme na to použili Top Down parser, ktorý pracuje z ľava do prava, našou prvou pod úlohou by bolo parsovať pravidlo $A$ na tom istom mieste \cite{moore2000removing}. Takto sa okamžite dostávame do nekonečnej slučky. Rovnaký problém nastane aj s použitím gramatiky, ktorá obsahuje nepriamu ľavú rekurziu, kde sa do nekonečnej slučky dostaneme prechodom cez viac pravidiel.
+Predpokladajme, že sa snažím zparsovať pravidlo $A$ na danom mieste vo vstupnom reťazci. Ak by sme na to použili Top Down parser, ktorý pracuje z ľava do prava, našou prvou podúlohou by bolo parsovať pravidlo $A$ na tom istom mieste \cite{moore2000removing}. Takto sa okamžite dostávame do nekonečnej slučky. Rovnaký problém nastane aj s použitím gramatiky, ktorá obsahuje nepriamu ľavú rekurziu, kde sa do nekonečnej slučky dostaneme prechodom cez viac pravidiel.
 
-V teórii, obmedzenie na bezkontextové gramatiky bez ľavej rekurzie nepridáva žiadne obmedzenie na jazyk, ktorý sa snažíme popísať gramatikou. Existujú pravidlá pomocou ktorých sa dá ľavá rekurzia odstrániť. V zásade každá bezkontextová gramatika obsahujúca ľavú rekurziu vie byť transformovaná na gramatiku bez ľavej rekurzie \cite{moore2000removing}.
+V teórii, obmedzenie na bezkontextové gramatiky bez ľavej rekurzie nepridáva žiadne obmedzenie na jazyk, ktorý sa snažíme popísať gramatikou. Existujú pravidlá, pomocou ktorých sa dá ľavá rekurzia odstrániť. V zásade každá bezkontextová gramatika obsahujúca ľavú rekurziu môže byť transformovaná na gramatiku bez ľavej rekurzie \cite{moore2000removing}.
 
-\textbf{Note: moznost pridat priklad odstranovania lavej rekurzie}
+% \textbf{Note: moznost pridat priklad odstranovania lavej rekurzie}
 % https://tomassetti.me/guide-parsing-algorithms-terminology/#typicalGrammarIssues
