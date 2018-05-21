@@ -1,0 +1,10 @@
+# 1. Copy antlr-4.7.1-complete.jar in C:\Program Files\Java\libs (or wherever you prefer)
+# 2. Create or append to the CLASSPATH variable the location of antlr
+# you can do to that by pressing WIN + R and typing sysdm.cpl, then selecting Advanced (tab) > Environment variables > System Variables
+# CLASSPATH -> .;C:\Program Files\Java\libs\antlr-4.7.1-complete.jar;%CLASSPATH%
+# 3. Add aliases
+# create antlr4.bat  
+java org.antlr.v4.Tool \%* 
+# create grun.bat  
+java org.antlr.v4.gui.TestRig \%*
+# put them in the system PATH or any of the directories included in your PATH

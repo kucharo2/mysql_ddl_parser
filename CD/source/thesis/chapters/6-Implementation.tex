@@ -1,0 +1,322 @@
+\chapter{MySQL DDL parser}
+Na základe dôvodov popisovaných v poslednej kapitole som sa na implementáciu DDL parseru pre MySQL rozhodol použiť nástroj ANTLR verzie 4. Tento nástroj je aktuálne vo svete najpoužívanejší a prináša veľké množstvo výhod, ktoré uľahčujú implementáciu aj následné ladenie parsovacích programov.
+
+\section{Základy ANTLR v4}
+
+Štvrtá verzia ANTLR má niektoré dôležité nové možnosti, ktoré znižujú učiacu sa krivku a umožňuje vytvárať gramatiky a jazykové aplikácie oveľa jednoduchšie. Najdôležitejšou výhodou je, že ANTLR v4 akceptuje každú gramatiku, ktorú mu poskytnete (s výnimkou týkajúcou sa nepriamej ľavej rekurzie). ANTLR prekladá vašu gramatiku do spustiteľného, ľudsky čitateľného analytického kódu, do ktorého keď zadáte platný vstupný reťazec, parser vždy rozpozná vstup správne, nezávisle na komplikovanosti gramatiky.
+
+V rámci tejto sekcie sú popísané základné informácie potrebné na pochopenie toho, ako s ANTLR pracovať. Na získanie podrobnejších alebo viac detailných informácií odporúčam knihu \textit{The Definitive ANTLR4 reference}\cite{definitiveANTLR} napísanú autorom ANTLR nástroja.
+
+\subsection{Nastavenie ANTLR}
+ANTLR sa skladá z dvoch častí: Nástroja na generovanie lexeru a parseru z gramatiky a knižnice potrebnej na beh parseru.
+
+Nástroj na generovanie je rovnaký, nezávisle na výstupnom jazyku generovaného lexeru a parseru a pre samotný beh parseru nie je potrebný. Využijú ho užívatelia, ktorí vytvárajú, alebo upravujú gramatiku. Je to vlastne program napísaný v programovacom jazyku Java, a preto je nutné na prácu s ním mať nainštalovanú aspoň Javu 1.7. Inštalácia ANTLR spočíva v stiahnutí naposledy zverejneného java archívu\footnote{\url{http://www.antlr.org/download.html}}, alebo jeho zostavením zo zdrojových kódov dostupných v GitHub repositári\footnote{\url{https://github.com/antlr/antlr4}}. 
+
+Kroky nutné na nainštalovanie ANTLR nástroja:
+\begin{enumerate}
+\item Nakopírovať stiahnutý nástroj na miesto, kde sú uchovávané java knižnice tretích strán.
+\item Pridať cestu k nástroju do systémových premenných.
+\item Na zjednodušenie používania vytvoriť spúšťací skript a vytvoriť naň alias.
+\end{enumerate}
+Konkrétne príklady inštalačných krokov je možné si pozrieť v prílohách \ref{install:windows} pre Windows a \ref{install:linux} pre Linux a Mac OS.
+
+Vstupom pre ANTLR nástroj je súbor s príponou \textit{.g4}, ktorý obsahuje gramatiku jazyka (viď kapitola \ref{antlr_grammar}), pre ktorý bude analyzátor vygenerovaný. Príkaz na vygenerovanie lexeru a parseru z definovanej gramatiky vyzerá nasledovne.
+\begin{center}
+\textit{antlr4 <options> <grammar-file-g4>}
+\end{center}
+
+Dôležitým nastavením pri generovaní je možnosť zvoliť si cieľový jazyk vygenerovaného parseru. Prednastaveným výstupným jazykom je Java, no ANTLR podporuje aj Python, JavaScript a C\#. Na prechádzanie zparsovaného stromu ANTLR v základe generuje objekt poslucháča, ktorý reaguje na udalosti vznikajúce pri príchode aj pri odchode z uzla stromu. Ak užívateľ preferuje pri prechádzaní stromom použitie návrhového vzoru návštevník, je možné ANTLR nástroju nastaviť generovanie \textit{visitor} objektov.
+
+\subsubsection{Maven}
+Pre projekty, ktoré využívajú Maven\footnote{\url{https://maven.apache.org/}} na riadenie a správu buildov aplikácii, je možné túto správu využiť aj pre nastavenie ANTLR.
+
+Prvým krokom je si v \textit{pom.xml} nadefinovať závislosť na \textit{antlr4-runtime}, ktorý je potrebný na beh vygenerovaného parseru.
+
+\begin{lstlisting}[language=XML, frame=none, numbers=none]
+<dependency>
+    <groupId>org.antlr</groupId>
+    <artifactId>antlr4-runtime</artifactId>
+    <version>4.7</version>
+</dependency>
+\end{lstlisting}
+
+Ako druhý krok je nutné nastaviť maven plugin, pomocou ktorého bude ANTLR generovať parser z poskytnutej gramatiky počas buildu aplikácie. Tento plugin v základe očakáva \textit{.g4} súbory v priečinku \textit{src/main/antlr4}. Túto cestu je možné ručne definovať pomocou konfiguračného parametru \textit{sourceDirectory}.
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=XML, frame=none, numbers=none]
+<plugin>
+    <groupId>org.antlr</groupId>
+    <artifactId>antlr4-maven-plugin</artifactId>
+    <version>4.7</version>
+    <configuration>
+        <sourceDirectory>${antlr.source.directory}</sourceDirectory>
+    </configuration>
+    <executions>
+        <execution>
+            <goals>
+                <goal>antlr4</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
+\end{lstlisting}
+\end{minipage}
+
+Na definíciu cieľového balíčka, v ktorom sa budú nachádzať vygenerované súbory, použije \mbox{ANTLR}  štruktúru v zdrojovom priečinku. Ak uvažujeme základný zdrojový priečinok \textit{src/main/antlr4} a cesta k súboru s gramatikou bude napríklad:
+
+\begin{center}
+\textit{src/main/antlr4/mysql/grammar/MySqlParser.g4}
+\end{center}
+
+Vygenerovaný parser sa bude v tomto prípade nachádzať v balíčku \textbf{mysql.grammar}.
+
+\subsection{ANTLR Gramatika}\label{antlr_grammar}
+Písanie gramatiky je podobné písaniu softwaru s výnimkou toho, že namiesto funkcií a procedúr sa používajú pravidlá. ANTLR používa na zápis gramatiky EBNF notáciu, ktorá je zároveň používaná v dokumentáciach programovacích jazykov na popis ich syntaxi. Vďaka nej je možné pri zápise pravidiel používať operácie ako napríklad zlučovanie, opakovanie a nepovinnosť, ktoré sú popísané v kapitole \ref{EBNF}.
+
+Aby bol ANTLR schopný rozpoznať pravidlá pre lexer a parser, je zavedená konvencia na zápis týchto pravidiel. Tá kontroluje, či prvé písmeno pravidla je veľké alebo malé. Síce sa toto pravidlo vzťahuje iba na prvé písmeno, ale aj tak je zvykom definovať názov pravidiel pre lexer iba pomocou veľkých písmen. 
+
+\subsubsection{Pravidlá pre lexer}
+Je dôležité mať na pamäti, že lexerove pravidlá sú analyzované v poradí, v akom sa objavujú a môžu byť nejednoznačné. Typickým príkladom v programovacom jazyku je napríklad to, že názov premennej môže byť akékoľvek slovo s výnimkou kľúčových slov. Poradie pravidiel rieši nejednoznačnosť tým, že použije prvú zhodu, a preto sú tokeny označujúce kľúčové slová definované ako prvé, zatiaľ čo identifikačné znaky sú uvedené ako posledné. Na lepšie priblíženie tvorby gramatiky pre lexer sa pozrime na príklad:
+
+\begin{lstlisting}[basicstyle=\small, keepspaces=true]
+fragment NUMBER           : [0-9]+ ;
+DECIMAL_NUMBER       : NUMBER ',' NUMBER ;
+WHITESPACE                 : ' ' -> skip ;
+\end{lstlisting}
+
+Tento príklad zobrazuje tri typy pravidiel, ktoré sa používajú na vytvorenie gramatiky pre lexer. V prvom pravidle je možné vidieť kľúčové slovo \textbf{fragment}, ktoré definuje prepouživateľné bloky pre pravidlá lexeru. Vďaka definovaniu fragmentu \textit{NUMBER}, je následné možné tento fragment použiť pri definovaní pravidla \textit{DECIMAL\_NUMBER}. Ak by v gramatike existovali definície na fragmenty, ktoré neboli použité na definovanie nejakého pravidla, pre lexer jednoducho nemajú žiadny efekt. Je dôležité si uvedomiť, že fragment sa neberie ako pravidlo lexeru, z čoho vyplýva, že ak by sme pomocou lexeru vytvoreného gramatikou z príkladu chceli analyzovať číslo bez desatinej čiarky, nepodarilo by sa nám to. Aby lexer podporoval aj tento prípad, je nutné upraviť pravidlo na:
+
+\begin{lstlisting}[basicstyle=\small]
+DECIMAL_NUMBER : NUMBER (',' NUMBER)? ;
+\end{lstlisting}
+
+Najviac zaujímavým pravidlom je pravidlo definujúce medzery:
+
+\begin{lstlisting}[basicstyle=\small]
+WHITESPACE                 : ' ' -> skip ;
+\end{lstlisting}
+
+Zaujímavé je z dôvodu, že predstavuje možnosť ako ANTLR-u indikovať, že má niečo ignorovať. Vďaka tomuto pravidlu sa náramne zjednoduší písanie pravidiel pre parser. Ak by takého pravidlo neexistovalo, musel by to autor gramatiky zahrnúť medzi každú podskupinu pravidiel parseru. ako napríklad:
+\begin{lstlisting}[basicstyle=\small]
+sum  : WHITESPACE* NUMBER WHITESPACE* '+' WHITESPACE* NUMBER;
+\end{lstlisting}
+
+Tento princíp sa typicky aplikuje aj na komentáre. Tie sa taktiež môžu objaviť kdekoľvek a väčšinou autora pri parsovaní nezaujímajú, takže sa jednoducho ignorujú.
+
+\subsubsection{Dostupné gramatiky}
+Kľúčovou výhodou ANTLR v4 je dostupnosť obrovského množstva vytvorených gramatík od autorov z celého sveta, ktoré sú združené v rámci ANTLR GitHub repozitáru\footnote{\url{https://github.com/antlr/grammars-v4}}. Pre tieto gramatiky neexistuje žiadna globálna licencia. Každá z gramatík má svoju vlastnú licenciu. Súčasťou tejto kolekcie je aj gramatika pre MySQL, ktorá je vytvorená na základe dokumentácie pre MySQL verzie 5.6 a 5.7, čo presne vyhovuje potrebám projektu Debezium. MySQL gramatika je vydaná pod licenciou MIT\footnote{MIT licencia je jedna z najmenej reštriktívnych open source licencií. Ktokoľvek môže takto licencovaný program bez obmedzenia používať a šíriť, pokiaľ z programu neodstráni kópiu licencie a meno autora.}.
+
+\subsection{Ukážková implementácia}\label{basic_implementation}
+% https://gist.github.com/mattmcd/5425206
+Ako ukážkovú implementáciu použijeme príklad na parsovanie pozdravu. Prvým krokom implementácie je definícia gramatiky (viď ukážka \ref{code:hello_grammar}). V tomto prípade to je veľmi jednoduchá gramatika o jednom pravidle \textit{greeting}, ktoré na prvom mieste očakáva slovo \textit{hello} nasledované akýmkoľvek reťazcom skladajúcim sa z malých písmen abecedy.
+
+\lstinputlisting[caption=Ukážková gramatika Hello, 
+            label=code:hello_grammar,
+            keepspaces=true]
+            {code/6/hello_grammar.tex}
+
+Z tejto gramatiky ANTLR vygeneruje \inlinecode{HelloParser}, \inlinecode{HelloLexer}, rozhranie \inlinecode{HelloListener} a jeho základnú (prázdnu) implementáciu \inlinecode{HelloBaseListener}. Jeho použitím je možné poslúchať udalosti vzniknuté pri príchode a odchode z pravidiel gramatiky. Implementujeme si vlastný \inlinecode{HelloListenerCustom}, pomocou ktorého budeme reagovať na nami zvolené udalosti. V tomto prípade to je výpis na systémový výstup pri príchode aj odchode na pravidlo \textit{greeting} (viď ukážka \ref{code:hello_listener}).
+
+\lstinputlisting[language=Java2,
+			caption=Ukážková implementácia HelloListener.java, 
+            label=code:hello_listener]
+            {code/6/HelloListener.java}
+
+Posledným krokom je implementovať aplikáciu, ktorá inicializuje \inlinecode{HelloLexer}, \inlinecode{HelloParser} a spustí samotné parsovanie (viď ukážka \ref{code:hello_main}). \inlinecode{HelloLexer} sa inicializuje pomocou prúdu znakov reprezentovaných \inlinecode{CharStream} objektom. Použitím lexeru si vytvoríme prúd tokenov \inlinecode{CommonTokenStream}, ktorým inicializujeme \inlinecode{HelloParser}. Zavolaním príkazu na riadku 10 ukážky \ref{code:hello_main} spustíme proces parsovania, ktorého vstupom je zparsovaný strom. Posledným krokom je prechod stromu pomocou \inlinecode{ParseTreeWalker} triedy, ktorej priradíme nami vytvorený \inlinecode{HelloListenerCustom}. Náš \inlinecode{HelloListenerCustom} je možné priradiť aj parseru, vďaka čomu by sme mohli odchytávat udalosti už počas toho, ako sa vygenerovaný parser snaží vytvoriť zparsovaný strom. V takomto prípade je ale nutné počítať zo situáciami, že aktuálne sparovaný kontext nie je úplný a taktiež nie je zaručené, že pravidlo bude obsiahnuté vo výslednom zparsovanom strome. 
+
+\begin{minipage}{\linewidth}
+\lstinputlisting[language=Java2,
+			caption=Ukážková implementácia Main.java, 
+            label=code:hello_main]
+            {code/6/Hello.java}
+\end{minipage}
+
+\section{Návrh DDL parseru}
+Pri návrhu nového generovaného DDL parseru pomocou ANTLR, je dôležité brať do úvahy aktuálny design projektu Debezium a implementáciu existujúceho parseru. Primárnou snahou je prepoužiť čo možno najväčšiu časť aktuálnej implementácie, ktorú už niekoľko projektov využíva. Počas návrhu taktiež prihliadam na budúcnosť, ktorá nasvedčuje tomu, že projekt Debezium má v pláne podporovať väčšie množstvo DBMS, ktorých prípadné DDL parsery budú taktiež využívať ANTLR nástroj. Práve na základe tejto skutočnosti je snaha zgeneralizovať čo najväčšiu časť novej implementácie.
+
+\subsection{Aktuálny design}\label{old_design}
+Štruktúra projektu Debezium je členená do viacerých modulov. Každý konektor pre jednotlivé DBMS je implementovaný v samostatnom module. V kontexte DDL parsovania MySQL sú významné dva moduly:
+\begin{itemize}
+\item \textbf{debezium-core} modul, v ktorom sa nachádza implementácia spoločná pre všetky databázové systémy.
+\item \textbf{debezium-connector-mysql} modul, ktorý je závislý na \textit{debezium-core} module. Súčasťou modulu je celá implementácia špecifická pre MySQL databázový systém, ktorej súčasťou je aj aktuálny DDL parser, ktorý má byť nahradený.
+\end{itemize}
+
+MySQL je aktuálne jediným Debeziom podporovaným databázovým systémom, v rámci ktorého sa parsujú DDL dotazy. Pravdepodobne z tohto dôvodu nebola implementácia dostatočne generalizovaná a mnohé funkcionality, ktoré v budúcnosti budú využívať aj iné typy DDL parserov neboli implementované v rámci \textit{debezium-core} modulu.
+
+Vstupným bodom pre DDL parser je komponenta \inlinecode{MySqlSchema}, ktorá zaznamenáva históriu schémat pre databázy hostované na MySQL. V rámci tejto komponenty sa inicializuje \inlinecode{MySqlDdlParser}, ktorý dedí od \inlinecode{DdlParser}. Diagram na obrázku \ref{fig:class_diagram_old} znázorňuje aktuálnu závislosť tried a verejných metód, ktoré sú podstatné pri práci s MySQL DDL parserom.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=10cm]{figures/Old_modules.pdf}
+\caption{Diagram tried aktuálneho návrhu MySQL DDL parseru}
+\label{fig:class_diagram_old}
+\end{center}
+\end{figure}
+
+Všetky verejné metódy, ktoré obsahuje \inlinecode{DdlParser} a \inlinecode{MySqlDdlParser} predstavujú API parseru, ktoré je volané komponentou \inlinecode{MySqSchema}. 
+
+Existujúci návrh je viac než nedostačujúci pre možnosť rozšírenia, či už novým parserom pre MySQL databázový systém, alebo parserom pre ktorýkoľvek iný DBMS. Na prvý pohľad je napríklad možné vidieť absenciu rozhrania pre \inlinecode{DdlParser}. Bližší pohľad na jednotlivé triedy z obrázku \ref{fig:class_diagram_old} nám načrtne obraz na vylepšenie tohto návrhu.
+
+\inlinecode{DdlParser} trieda má aktuálne predstavovať základ pre všetky DDL parsre. Obsahuje implementáciu kľúčových metód, ktoré riešia: 
+\begin{itemize}
+\item Nastavenie DDL parseru ako napríklad, či sa majú parsovať dotazy pre náhľady tabuliek, ktorá schéma resp. databáza je aktuálne sledovaná a podobne.
+\item Signalizáciu zmien nad databázou, ktoré boli počas parsovania detekované.
+\item Spoločné pomocné metódy, ako napríklad metóda na vyseparovanie reťazca, ktorý je obklopený úvodzovkami a mnohé ďalšie.
+\end{itemize}
+
+Súčasťou \inlinecode{DdlParser} triedy je aj implementácia základnej parsovacej logiky a parsovanie konkrétnych typov reťazcov, u ktorých sa predpokladalo, že ich bude možné prepoužiť aj v rámci ďalších implementácií ddl parserov.
+
+Trieda \inlinecode{MySqlDdlParser} predstavuje implementáciu DDL parseru. Táto trieda je už špecifická pre MySQL databázový systém, a preto nie je možné ju ďalej generalizovať. Jediný problém, ktorý u tejto implementácie nastal, je trieda \inlinecode{MySqlSystemVariables}, ktorá udržuje systémové premenné na úrovni priestoru definovaného pomocou enumu \inlinecode{Scope}. Autor túto funkcionalitu implementoval ako súčasť MySQL, no správne by mala byť taktiež generalizovaná, nakoľko každý DBMS má svoje vlastné systémové premenné.
+
+\subsection{Úprava aktuálneho designu}
+Na základe nedokonalostí zistených v aktuálnom návrhu DDL parsrov, je potrebné vykonať zmeny v tomto návrhu tak, aby vyhovovali implementácii nového parseru generovaného pomocou ANTLR, ale zároveň zachovali aktuálne riešenie a prípadnú implementáciu nových DDL parserov týmto "starým"{ }spôsobom.
+
+Prvou zmenou v návrhu je vytvorenie rozhrania pre DDL parsre, ktoré bude definovať možnosť komunikácie pre komponenty, ktoré potrebujú parsovať DDL dotazy. Toto rozhranie bude definovať všetky verejné metódy z tried \inlinecode{DdlParser} a \inlinecode{MySqlDdlParser}. Tým sa dostávame k prvému problému, ktorým sú systémové premenné. Nakoľko nové rozhranie bude súčasťou \textit{debezium-core} modulu, je nutné generalizovať triedu \inlinecode{MySqlSystemVariables}. 
+
+Aktuálna implementácia triedy \inlinecode{MySqlSystemVariables} obsahuje dve \inlinecode{Map} objekty, ktoré udržiavali hodnoty systémových premenných tak, že na základe hodnoty enumu \inlinecode{Scope} bola zvolená správna mapa, z ktorej sa hodnota premennej čítala. Takýto prístup v generalizovanej verzii nie je možné použiť, nakoľko hodnoty priestoru definovaného enumom \inlinecode{Scope} sú odlišné v závislosti na DBMS. Ukladanie systémových premenných volá po riešení pomocou mapy priradenej k hodnote \inlinecode{Scope} enumu. Enum je ale špeciálny typ objektu v Jave, ktorý nedokáže dediť od iného enumu, čo prináša dilemu spojenú s tým, ako vyriešiť vlastné hodnoty \inlinecode{Scope} pre jednotlivé DBMS? 
+
+Dedenie enumov je väčšinou zlý nápad, no toto je jeden z prípadov, kde to dáva zmysel. Možnosť, ako túto situáciu vyriešiť, je namiesto enumu \inlinecode{Scope} použiť rozhranie \inlinecode{Scope}. V takomto prípade majú jednotlivé implementácie možnosť vytvorenia vlastného enumu s vlastnými hodnotami, kde stačí, aby tento enum implementoval rozhranie \inlinecode{Scope}. \cite{effective_java}
+
+Nakoľko chceme prepoužiť, resp. zanechať čo možno najväčšiu časť existujúcej aplikácie, bolo by vhodné vyseparovať z triedy \inlinecode{DdlParser} všetko, čo by mohla používať aj nová implementácia parseru. Ako bolo popísané v kapitole \ref{old_design}, súčasťou implementácie \inlinecode{DdlParser} sú kľúčové metódy, ktoré nie sú závislé na štýle parsovania, a preto je vhodné ich prepoužiť aj v rámci ANTLR parseru. Vyseparujeme preto túto časť implementácie do abstraktnej triedy, ktorá bude predstavovať najnutnejší základ pre všetky typy DDL parserov. Všetky ostatné metódy ponecháme v \inlinecode{DdlParser}. Aby názvoslovie nebolo príliš zmätočné, pozostatok triedy \inlinecode{DdlParser} predstavujúci implementáciu základnej parsovacej logiky pre ručné parsovanie nazveme \inlinecode{LegacyDdlParser} a názov \inlinecode{DdlParser} rezervujeme pre novovytvorené rozhranie DDL parserov.
+
+Pri každej zmene, ktorá nastane nad databázovým modelom uloženým v pamäti, sa pomocou udalosti táto zmena signalizuje poslucháčom, ktorí boli priradení DDL parseru. Myšlienka tejto funkcionality ale v stávajúcej implementácii nie je využitá. Jediným poslucháčom je \inlinecode{DdlChanges} trieda, ktorá sa tvári ako poslucháč, ale reálne tak nepracuje. Jeho reakcia na prijatú udalosť spočíva v iba v tom, že si túto udalost pridá do listu udalostí, s ktorým sa následne pracuje až po ukončení práce parseru. Nakoľko neexistujú žiadni iní poslucháči, vedenie projektu sa rozhodlo túto funkcionalitu zanechať v rámci \inlinecode{LegcyDdlParser} implementácie, ale nechcelo ju mať v novej implementácii. \inlinecode{DdlChanges} trieda sa teda stane súčasťou abstraktnej implementácie parsru a prístup k nej bude možný pomocou vystavenej metódy v rámci \inlinecode{DdlParser} rozhrania.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=15cm]{figures/New_design.pdf}
+\caption{Upravený diagram tried MySQL DDL parseru}
+\label{fig:class_diagram_new}
+\end{center}
+\end{figure}
+
+\subsection{ANTLR DDL parser design}
+Úpravou designu aktuálnej implementácie, ktorej výsledok je možné vidieť na obrázku \ref{fig:class_diagram_new} nám zabezpečí možnosť jednoduchšieho návrhu pre DDL parsre generované pomocou \mbox{ANTLR}. Z celého návrhu je nutné nahradiť triedy \inlinecode{LegacyDdlParser} a \inlinecode{MySqlDdlParser} za novú implementáciu. Zachovaním myšlienky na prepoužitie bude opäť návrh obsahovať triedu zo základnou implementáciou ANTLR parserov a konkrétnu implementáciu pre MySQL DBMS.
+
+Pri návrhu je nutné počítať aj s generovaním gramatík, čo pre modul, ktorý bude definície gramatík obsahovať spôsobí, že jeho build bude trvať dlhšie. Práve z dôvodu, aby sa vývojárom ušetril čas buildu pri implementovaní špecifických parserov, bude základná implementácia spolu z definíciou gramatík a vygenerovanými triedami oddelená do samostatného modulu, ktorý sa nazve \textbf{debezium-ddl-parser}. Samotná implementácia parseru pre MySQL, už bude súčasťou modulu \textit{debezium-connector-mysql}. Takýto návrh spôsobí to, že pri implementácii MySQL parseru bude nutné zostaviť modul \textit{debezium-ddl-parser} iba raz, aby sa vygenerovali triedy z gramatiky a následne stačí buildiť iba modul, v ktorom sa nachádza konkrétna implementácia, v rámci ktorého sa už nič ohľadom ANTLR parseru generovať nebude.
+
+Ako je vidieť z ukážkovej implementácie v kapitole \ref{basic_implementation}, ANTLR DDL parser sa skladá z inicializácie lexeru, parseru a priradení poslucháča, ktorý bude reagovať na zparsovaný strom a vykonávať náležité akcie nad databázovým modelom, ktorý si udržuje Debezium. 
+Keďže parsovací strom môže pozostávať z viacerých SQL dotazov, je potrebné počítať s tým, že v rámci jeho prechodu a snahe vykonať úpravy nad databázovým modelom môže nastať viacero chýb. Tieto chyby bude nutné lokálne ukladať a spracovať ich až po prejdení celého stromu. Kvôli tomu bude od konkrétnych poslucháčov vyžadované, aby implementovali metódu, ktorá vráti zoznam chýb, ktoré nastali počas prechodu stromu. To sa zabezpečí použitím rozhrania \inlinecode{AntlrDdlParserListener}. 
+
+Inicializácia lexeru a parseru je závislá na konkrétnych triedach vygenerovaných ANTLR nástrojom, ktoré majú generovaný názov podľa názvu gramatiky. To indikuje, že novú inštanciu triedy musí sprostredkúvať implementácia konkrétneho parseru. Samotný postup inicializácie sa dá generlizovať a na získanie nových inštancií sa môže použiť abstraktná metóda, ktorej implementácia bude súčasťou implementácie konkrétneho parseru. Rovnaký problém sa aplikuje aj na spustenie parsovania a priradenie implementácie \inlinecode{AntlrDdlParserListener}. \mbox{O inicializáciu} sa bude starať trieda \inlinecode{AntlrDdlParser}.
+
+Výsledok tohto návrhu je možné vidieť na obrázku \ref{fig:class_diagram_antlr}.
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=15cm]{figures/antlr_design.pdf}
+\caption{Diagram tried MySQL ANLTR DDL parseru}
+\label{fig:class_diagram_antlr}
+\end{center}
+\end{figure}
+
+\section{Implementácia}
+Implementácia generovaného parseru má nahradiť existujúci ručne implementovaný parser. Z toho vyplýva, že parser musí zvládnuť analyzovať všetky typy DDL dotazov, ktoré upravujú štruktúru \textbf{databázy}, \textbf{tabuliek} a \textbf{pohľadov} (anglicky VIEW). Súčasťou parsra sú aj administratívne dotazy, ktorými sa nastavujú systémové premenné a taktiež dotazy na prepínanie sa v rámci aktívnej databázy, nad ktorou sa DDL aplikuje (USE dotazy).
+
+\subsection{Závislosť na veľkosti písmen}
+SQL dotazovací jazyk nie je závislý na veľkosti písmen. V niektorých prípadoch existuje možnosť nastavenia DBMS tak, že mu závisí na veľkosti písmen iba v pomenovaniach tabuliek a stĺpcov. Bohužiaľ parsre vygenerované ANTLR nástrojom sú závisle od veľkosti písmen podľa toho, ako sú definované jednotlivé u tokenov pre lexer. ANTLR podporuje dve rôzne riešenia pre tento problém\footnote{\url{https://github.com/antlr/antlr4/blob/master/doc/case-insensitive-lexing.md}}. Jedným z nich je úprava gramatiky pre lexer, ktoré je postavené na myšlienke definovania fragmentov pre každé písmeno abecedy. Tento fragment by definoval písmeno abecedy ako veľké alebo malé písmeno napríklad: (\textit{fragment A: 'a'|'A';}). Tieto fragmenty by následne boli použité pre definíciu konkrétneho pravidla pre lexer. Takáto zmena by ale vyžadovala kompletné prepracovanie lexer gramatiky.
+
+Druhou možnosťou je pri vytváraní prúdu znakov, ktoré odovzdávame lexeru, použiť vlastnú triedu, ktorá preťaží metódy používané lexerom, čím prinúti lexer vidieť daný znak ako veľké alebo malé písmeno (záleží na nastavení). V takomto prípade gramatické pravidlá pre lexer musia byť definované iba veľkými alebo malými písmenami. Gramatika, ktorú používame na parsovanie MySQL, má všetky pravidlá definované veľkými písmenami, takže na vyriešenie problému použijeme túto možnosť. 
+
+\subsection{Proxy parse listener}
+Počas prechádzania zparsovaného stromu pomocou \inlinecode{ParseTreeWalker}, je možné mať priradeného iba jedného poslucháča. Pri množstve odchytávaných udalostí by takýto prístup bol veľmi neprehľadný a bolo by náročné v implementácii jedného poslucháča hľadať odchytávané udalosti pre konkrétny typ spracovavaného SQL dotazu. Je vhodné preto vytvoriť poslucháčov rozdelených podľa konkrétnych typov dotazov. Bohužiaľ, možnosť priradenia viacerých poslucháčov nie je súčasťou ANTLR runtime balíčku a bola evidovaná aj ako problém\footnote{\url{https://github.com/antlr/antlr4/issues/841}} v rámci ich verejného repozitára. Odporúčaním k tomu, aby sme sa vyhli samostatnému prechádzaniu zparsovaného stromu pre každého vytvoreného poslucháča, je vytvorenie jedného hlavného poslucháča, ktorý bude delegovať všetky udalosti na predom definovaných poslucháčov. Vygenerovaný poslucháč od ANTLR túto možnosť poskytuje pomocou metód \inlinecode{ParseTreeListener#enterEveryRule} a \inlinecode{ParseTreeListener#exitEveryRule}.
+
+Počas implementácie som sa snažil túto možnosť rozumne zgeneralizovať, nakoľko predpokladám, že ostatné implementácie ANTLR parsru by ju taktiež radi uvítali, nedospel som k dokonalému riešeniu, ktoré by vyhovovalo. Aby takéto riešenie bolo možné a vyhovovalo by v každej situácii, bolo by nutné aby Java podporovala možnosť dediť od viacerých tried naraz. V ôsmej verzii javy bolo umožnené implementovať rozhranie zo základnou implementáciou jeho metód. Táto možnosť sa javila ako riešenie problému dedenia viacerých tried, no nakoniec tiež zlyhala. Implementácia základných metód fungovala správne, ale vyžadovala závislosť na premenných definovaných v rámci triedy, ktoré sú v rozhraní implicitne statické a konečné. To samozrejme nevyhovovalo nakoľko jedna z premenných mala udržiavať list poslucháčov, ktorým sa majú udalosti delegovať.
+
+Jediným riešením, ako implementovať túto funkcionalitu, aby bola čo najlepšie prepoužiteľná, bolo presunutie metód do jednej pomocnej triedy \inlinecode{ProxyParseTreeListenerUtil}, ktorú si zavolá každá implementácia samostatne.
+
+\subsection{Databázové DDL}
+Dôvodom na parsovanie databázových DDL dotazov na vytvorenie a upravenie databázy resp. schémy, je sledovanie ich nastavenej sady znakov. Táto informácia je dôležitá následne pri vytváraní databázových tabuliek a definícií stĺpcov v tabuľkách, u ktorých je možné nastaviť sadu znakov pomocou kľúčového slova DEFAULT. V takomto prípade sa má prepoužiť hodnota nastavená pre danú databázu\cite{mysql:reference_manual}. Hodnoty nastavenej sady znakov pre databázu sa ukladajú v samostatnej mape uloženej v rámci DDL parseru.
+
+Súčasťou databázových dotazov je zahodenie resp. zmazanie databázy. Tento prípad nebol ošetrovaný v rámci existujúceho parseru, no osobne si myslím, že by sa riešiť mal. V prípade tohto dotazu by sa správne mali zmazať všetky tabuľky vytvorené v rámci danej databázy resp. schémy. V Debeziu je každá tabuľka definovaná pomocou \textit{schemaName}, čo zodpovedá našej databáze v MySQL, \textit{catalogName}, čo je špecifické iba pre niektoré typy DBMS, a názvu tabuľky. Pri mazaní tabuliek z modelu v pamäti je preto nutné počítať s hodnotami \textit{null}, ktoré sú taktiež validné. Výslednú implementáciu je možné vidieť na ukážke \ref{code:removeTablesByDatabase}.
+
+\subsection{Tabuľkové DDL}
+Parsovanie DDL dotazov, ktoré vytvárajú a upravujú štruktúru tabuliek, je pre projekt Debezium najpodstatnejšie. Na základe týchto informácií generuje štruktúry správ pre zmenu dát, ktoré odosiela Kafke. Neoddeliteľnou súčasťou parsrov pre všetky DBMS je analýza dátových typov, ktoré je potrebné mapovať na \nom{JDBC}{Java database connection}\footnote{API, ktoré definuje jednotlivé rozhrania pre prístup k relačným databázam v Jave} typy. Hodnoty odosielané v správach Kafky sú následne konvertované na základe daného JDBC typu.
+
+Parsovanie dotazov na zmazanie tabuliek predstavuje iba vymazanie danej tabuľky z modelu. Na druhú stranu parsovanie dotazov na vytvorenie a úpravu tabuliek je o niečo zaujímavejšie (viď podkapitola \ref{createAlterTable}). Súčasťou tabuľkových dotazov je aj dotaz na skartovanie tabuľky (TRUNCATE). Reakcia na tieto typy dotazov, ktoré vymazávajú všetky dáta z danej tabuľky, sa aktuálne v projekte Debezium rieši. Prvotnou implementáciou je iba signalizácia tohto dotazu.
+
+\subsubsection{Dotazy na vytvorenie a úpravu tabuliek}\label{createAlterTable}
+Na vytvorenie tabuliek v MySQL existujú tri typy SQL dotazov. 
+\begin{itemize}
+\item Vytvorenie tabuľky s použitím definícii stĺpcov.
+\item Vytvorenie kópie existujúcej tabuľky.
+\item Vytvorenie tabuľky na základe definovaného vyhľadávacieho (\textit{SELECT}) výrazu.
+\end{itemize}
+
+Vďaka tomu, že Debezium parsuje DDL výrazy, ktoré číta z MySQL binlogu, sa parser nemusí zaoberať parsovaním posledného spomenutého typu, čiže vytvorenia na základe vyhľadávacieho výrazu. Tento typ v MySQL znamená nielen vytvorenie novej tabuľky, ale zároveň jej naplnenie dátami, ktoré sú vysledkom vyhľadávacieho dotazu. Debezium pracuje z MySQL binlogom, ktorý ma nastavený zápis udalosti vo formáte \textit{row-based}. To znamená, že vytvorenie tabuľky aj následné vkladanie dát je rozdelené do viacerých udalostí rôznych typov. Udalosť na samotné vytvorenie tabuľky je v tomto prípade v binlogu uložená vo formáte klasického dotazu s definíciou stĺpcov, čo sa zhoduje s prvým typom SQL dotazu na vytvorenie tabuliek.
+
+Vytváranie kópii existujúcej tabuľky neprináša žiadne problémy. Definíciu existujúcej tabuľky stačí dotiahnuť z modelu a prepoužiť jej štruktúru na vytvorenie novej tabuľky. Posledným typom na vyriešenie zostáva vytvorenie tabuľky pomocou definície stĺpcov a ich dátových typov. Parsovanie tejto definície je rovnaké ako pre vytváranie tabuliek, tak aj pre ich úpravu. Z tohto dôvodu vytvoríme samostatného poslucháča, ktorý bude analyzovať definície stĺpcov. Ako bolo spomenuté, v rámci dátových typov je potrebné implementovať mapovanie na JDBC typ.
+
+\subsubsection{Mapovanie dátových typov}
+Na mapovanie dátových typov som vytvoril komponentu, ktorej primárnou úlohou bude zmienené mapovanie, ale zároveň vie genericky konštruovať názov dátového typu a taktiež umožňuje nastavenie základných hodnôt dimenzií pre určité dátové typy. Túto komponentu je možné v implementácii nájsť pod názvom \inlinecode{DataTypeResolver}.
+
+Súčasťou tejto komponenty je dátový objekt \inlinecode{DataTypeEntry}, ktorý udržiava nastavenie pre jeden konkrétny dátový typ. Jeho základným nastavením je definícia mapovania dátového typu pozostávajúceho z identifikátorov na tokeny, ktorými je dátový typ pomenovaný a jeho ekvivalentu v rámci JDBC typu. Toto nastavnie je povinné, takže sa definuje v rámci konštruktoru \inlinecode{DataTypeEntry} objektu. Nakoľko komponenta \inlinecode{DataTypeResolver} má za úlohu rozpoznať celý názov dátového typu, je možné v rámci \inlinecode{DataTypeEntry} definovať tokeny, ktoré sú pre daný typ nepovinné. Poslednou súčasťou tohto dátového objektu je možnosť nastavenia základných hodnôt dimenzií. Príklad inicializácie tejto komponenty je možné vidieť na ukážke \ref{code:registerDataTypes}.
+
+Komponenta \inlinecode{DataTypeResolver} prijíma ako vstupný parameter kontext, ktorý obsahuje definíciu dátového typu. Nakoľko dátové typy môžu spadať pod rôzne inštancie tohto kontextu, komponenta používa kanonický názov triedy kontextu na priradenie dátového typu. Týmto sa zabezpečí zrýchlenie algoritmu, nakoľko \inlinecode{DataTypeResolver} nebude musieť vždy prechádzať všetky definované \inlinecode{DataTypeEntry}, ale iba tie, ktoré spadajú pod konkrétne riešený kontext. V rámci definovania dátových typov môže nastať situácia, kedy identifikačné tokeny pre jeden dátový typ budú podmnožinou identifikačných tokenov pre iný dátový typ. Pre príklad MySQL dátový typ \textit{VARCHAR} sa mapuje na  JDBC typ \textit{VARCHAR} a MySQL dátový typ \textit{NATIONAL VARCHAR} sa mapuje na JDBC typ \textit{NVARCHAR}. S týmto problémom sa komponenta vysporiada pomocou nastavených priorít, kde priorita značí počet identifikačných tokenov MySQL dátového typu. To znamená, že ak by komponenta pri vyhodnocovaní identifikovala dátový typ, uloží si tento typ ako potencionálneho víťaza a pokračuje vo vyhodnocovaní ďalej. Ak sa jej podarí identifikovať ďalší dátový typ, tak sa na základe priority rozhodne ktorý je ten správny. Implementáciu vyhodnocovacieho algoritmu je možné vidieť na ukážke \ref{code:resolveDataType}. Výstupom tejto komponenty je objekt \inlinecode{DataType}, ktorý v sebe udržiava namapovaný JDBC dátový typ, celý názov dátového typu a prípadne nastavené základné hodnoty dimenzií dátového typu.
+
+\subsection{Pohľadové DDL}
+Parsovanie pohľadov pre Debezium aktuálne nie je veľmi dôležité. Existujúci parser analyzoval iba dotazy na vytvorenie pohľadov. Analýza na úpravu a mazanie pohľadov nebola implementovaná vôbec. Dokonca v základnom nastavení DDL parseru je parsovanie pohľadov vypnuté úplne. Tento prístup nie je úplne správny, nakoľko je možné vytvárať nové tabuľky kópiou existujúcich, do ktorých spadajú aj existujúce pohľady.
+
+Parsovanie pohľadov nie je úplne triviálna vec, nakoľko ich definícia sa zakladá na vyhľadávacom dotaze. Problém, ktorý takého definovanie pohľadu prináša je ten, že vyhľadávací dotaz môže mať v sebe vnorený ďalší vyhľadávací dotaz a ten ďalší dotaz a tak ďalej. Ďalším problémom je možnosť definovania aliasov pre vyhľadané tabuľky, prípadne ich stĺpce. To všetko je potrebné brať do úvahy pri snahe skonštruovať správny pohľad. Pointa konštrukcie pohľadu je založená na tom, že stĺpce, ktoré sú výsledkom vyhľadávajúceho dotazu, sú súčasťou existujúcej tabuľky, v ktorej sa nachádza definícia týchto stĺpcov. Táto definícia sa prepoužije na definovanie stĺpcov v pohľade. 
+
+Počas parsovania je potrebné identifikovať vyhľadané stĺpce na základe aliasov a vnorených vyhľadávacích dotazov. Táto funkcionalita je opäť spoločná ako pre vytváranie tak pre úpravu pohľadov, a preto je súčasťou samostatného poslucháča. Algoritmus, ktorý obstaráva túto funkcionalitu postupuje od najvnorenejšieho vyhľadávacieho dotazu až k definícii pohľadu. Pri vynorovaní si vytvára nové tabuľky reprezentujúce výsledok vyhľadávajúceho dotazu. Tieto tabuľky a ich stĺpce si ukladá pod názvom rovným ich predošlému názvu alebo ich aliasu, ak je definovaný. Týmto spôsobom zabezpečíme, že počas analýzy každého vyhľadávajúceho dotazu budeme mať k dispozícii tabuľky s názvami, ktoré daný vyhľadávací dotaz používa.
+
+\subsection{Procedúry a funkcie}
+Parsovanie DDL dotazov na vytváranie procedúr a funkcií je pre projekt Debezium nepodstatné. Obsahom týchto DDL môžu byť dotazy, ktoré parsované sú. Z logiky gramatiky a algoritmu, ktorý generovaný parser používa, sa udalosti o týchto dotazoch spropagujú poslucháčom, ktorí by ich spracovali. Aby nevznikali nekonzistentné dáta, je nutné implementovať logiku, ktorou sa validné dotazy, ktoré sú súčasťou dotazov na vytvorenie procedúr a funkcií, neparsovali.
+
+Túto funkcionalitu bude obstarávať hlavný poslucháč, ktorý rieši delegovanie udalostí. Ak sa detekuje parsovanie dotazu, ktorý sa parsovať nemá, vyšle sa hlavnému poslucháčovi signál, ktorý spustí preskakovanie všetkých uzlov sparovaného podstromu preskakovaného dotazu. Aby dokázal indikovať, kedy má s preskakovaním skončiť, použije sa premenná, ktorá bude uchováva číslo, ktoré sa každým zanorením v podstrome inkrementuje a každým vynorením dekrementuje. Týmto dosiahneme, že až sa prechádzanie podstromu dostane spať do uzlu, v ktorom začalo preskakovanie, bude táto hodnota natavená znovu na nulu a funkcia preskakovania sa vypne.
+
+\subsection{Parsovací mód}
+Po implementácii generovaného DDL parseru sa Debezium dostalo do stavu, že pre MySQL databázový konektor existujú dve možné riešenia na parsovanie DDL dotazov. Aby mal užívateľ možnosť si zvoliť, ktorý parser bude používať, vzniklo nové nastavenie konektoru, ktoré definuje parsovací mód. Pri inicializácii konektoru, môže užívateľ použiť nastavenie \textit{ddl.parser.mode}, ktoré prijíma hodnoty:
+
+\begin{itemize}
+\item \textbf{antlr}, ktorou nastaví použitie DDL parsru generovaného ANTLR nástrojom.
+\item \textbf{legacy}, ktorou nastaví použitie ručne napísaného DDL parsru.
+\end{itemize}
+
+Pokiaľ užívateľ nešpecifikuje mód, použije sa základné nastavenie, ktorým je parsovanie ANTLR parserom.
+
+Hodnota tohto nastavenia sa mapuje na javovský enum, pomocou ktorého je implementovaný návrhový vzor továrne (anglicky factory pattern), ktorý priradí konektoru správnu inštanciu \inlinecode{DdlParser} rozhrania.
+
+\section{Testovanie}
+Neoddeliteľnou súčasťou implementácie sú automatické testy, ktoré pomáhajú v odhalení chýb počas implementácie alebo následných úpravách kódu. Testovanie MySQL DDL parseru generovaného z gramatiky pomocou ANTLR pozostáva z unit a integračných testov a testovania vytvorenej gramatiky MySQL.
+
+\subsection{Unit a integračné testy}
+Projekt Debezium aktuálne obsahuje veľké množstvo unit a integračných testov, ktoré pokrývajú implementácie existujúceho parseru. Niektoré z týchto testov boli vytvorené na základe identifikovaných problémov užívateľmi projektu. Z tohto dôvodu považujem tieto testy za dostačujúce na testovanie novej implementácie generovaného parseru. 
+
+Počas implementácie sa mi podarilo odhaliť niekoľko chýb a nedostatkov existujúcej implementácie. Nakoľko mojou úlohou bola implementácia nového parseru a nie oprava stávajúceho riešenia, tieto chyby boli evidované a v rámci novej implementácie taktiež opravené. Bohužiaľ opravou týchto chýb sa prišlo na to, že niektoré aktuálne testy museli byt upravené, nakoľko počítali s chybnou implementáciou. Jedným z problémov bola aj benevolencia existujúceho parseru, ktorý pokiaľ detekoval dotaz, ktorý bol pre neho nepodstatný, preskočil ho. Takéto dotazy boli v testoch väčšinou napísané nevalidne voči syntaxi MySQL. Ich parsovanie pomocou novej implementácie samozrejme zlyhalo, nakoľko generovaný parser sa riadi definovanou gramatikou, ktorej nevalidný dotaz nevyhovoval.
+
+Pri odhalení nedostatkov sa ukázalo, že xistujúce riešenie neparsovalo SQL dotazy, ktoré by malo, ako napríklad dotazy na skartovanie (TRUNCATE) tabuliek, alebo úpravu a mazanie pohľadov. Pre tieto typy dotazov boli pre novú implementáciu parseru napísané nové testy, ktoré kontrolujú správnosť ich parsovania.
+
+Integračné testy projektu Debezium pracujú nad reálnou MySQL databázou a kontrolujú výsledné správy o zmenách, ktoré sa dostanú do Kafky. V rámci týchto testov sa inicializuje MySQL konektor, u ktorého je po novom možné nastaviť parsovací mód, vďaka ktorému je možné otestovať fungovanie konektoru s implementáciou ANTLR parseru.
+
+\subsection{Testovanie gramatiky}
+Bohužiaľ pri použití gramatiky MySQL, poskytnutej autormi ANTLR nástroja sa ukázalo, že aj táto gramatika obsahuje chyby. Preto bolo nutné gramatiku upraviť a nie je vylúčené, že sa môžu objaviť ďalšie problémy, kvôli ktorým bude nutný zásah do gramatiky. Z tohto dôvodu bola vytvorená sada SQL dotazov, pomocou ktorej sa kontroluje správnosť gramatiky počas jej generovania. Na toto testovanie bol použitý maven plugin, ktorý poskytuje ANTLR\footnote{\url{https://github.com/antlr/antlr4test-maven-plugin}}. 
+
+V konfigurácii tohto pluginu sa nastavuje:
+
+\begin{itemize}
+\item názov gramatiky, ktorá má byť testovaná
+\item vstupné pravidlo testovanej gramatiky
+\item balíček, v ktorom sa nachádzajú vygenerované triedy parseru
+\item nastavenie veľkosti písmen, ktorými je definovaná gramatika lexeru
+\item cesta k sade testovacích SQL dotazov.
+\end{itemize}
+
+Príklad nastavenia tohto maven pluginu je možné vidieť na ukážke \ref{code:antlr_grammar_test_plugin}
+
+\lstinputlisting[language=XML,
+			caption=Príklad konfigurácie maven pluginu na testovanie gramatiky, 
+            label=code:antlr_grammar_test_plugin]
+            {code/6/antlr_grammar_test_plugin.xml}
+
+\subsection{ANTLR works nástroj}
+Počas implementácie alebo prípadných úpravách gramatiky je ANTLR works nástroj obrovským pomocníkom. Po jeho nainštalovaní do svojho vývojového prostredia sa napríklad sprístupni zvýrazovnovanie a kontrola syntaxi pri písaní gramatiky, umožní navigovanie v pravidlách gramatiky a podobne. Najdôležitejou súčastou je možnosť vizualizácie parsovacieho stromu pre konkrétne pravidlá gramatiky, ktorý sa automaticky generuje počas vkladania parsovaného reťazca. V rámci výsledného stromu sa dá vidieť ako lexer rozdelil vstupný reťazec na jednotlivé tokeny a aké pravidlá gramatiky boli uplatené. V reálnom čase taktiež upozornuje na chyby, ktoré počas parsovania vstupného reťazca nastali. Súčasťou týchto upozornení je napríklad označenie prvého tokenu, kvôli ktorému sa nepodarilo uplatniť žiadne pravidlo gramatiky, alebo označenia pozície v reťazci, kde očakával konkrény typ tokenu. Na nasledujúcom obrázku \ref{fig:antlrWorks} je možné vidieť ukážku sparsovaného stromu.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=15cm]{figures/antlrWorks.PNG}
+\caption{Príklad sparsovaného stromu pomocou nástroja ANTLR works}
+\label{fig:antlrWorks}
+\end{center}
+\end{figure}
+
+Súčasťou nástroja je taktiež profiler gramatiky, pomocou ktorého sa dá analyzovať, ktoré rozhodnutiia v gramatike sú komplikované alebo drahé. Profilovacie údaje sú k dispozícii vždy rovnako ako sparsovaný strom počas interpretácii gramatiky. Pre bližšie informácie o možnostiach tohto nástroja, konkrétne pre vývojarské prostredie IntelliJ IDEA, odporúčam zhliadnuť jeho dokumentáciu v GitHub repositári\footnote{\url{https://github.com/antlr/intellij-plugin-v4}} ANTLR.

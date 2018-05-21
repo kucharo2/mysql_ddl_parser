@@ -1,0 +1,12 @@
+<plugin>
+    <groupId>com.khubla.antlr</groupId>
+    <artifactId>antlr4test-maven-plugin</artifactId>
+    <version>1.10</version>
+    <configuration>
+        <entryPoint>root</entryPoint>
+        <grammarName>MySql</grammarName>
+        <packageName>io.debezium.ddl.parser.mysql.generated</packageName>
+        <caseInsensitiveType>UPPER</caseInsensitiveType>
+        <exampleFiles>src/test/resources/mysql/examples</exampleFiles>
+    </configuration>
+</plugin>
